@@ -49,6 +49,9 @@ type Product = {
   status: ProductStatus;
   category?: Category | null;
   variants?: ProductVariant[];
+  displayStock?: number;
+  variantStock?: number;
+  stockMismatch?: boolean;
 };
 
 type ProductForm = {
@@ -95,8 +98,26 @@ const emptyVariantForm: VariantForm = {
   description: ""
 };
 
+const LOW_STOCK_THRESHOLD = 5;
+
 function formatCurrency(value: number | string) {
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(Number(value));
+}
+
+function getVariantStock(product: Product) {
+  return product.variantStock ?? product.variants?.reduce((sum, variant) => sum + Number(variant.stock ?? 0), 0) ?? 0;
+}
+
+function getDisplayStock(product: Product) {
+  if (product.displayStock !== undefined) {
+    return product.displayStock;
+  }
+
+  return product.variants?.length ? getVariantStock(product) : product.stock;
+}
+
+function hasStockMismatch(product: Product) {
+  return product.stockMismatch ?? (Boolean(product.variants?.length) && product.stock !== getVariantStock(product));
 }
 
 function productToForm(product: Product): ProductForm {
@@ -363,7 +384,7 @@ export default function AdminProductsPage() {
                     <th className="px-4 py-3 font-medium">Sản phẩm</th>
                     <th className="px-4 py-3 font-medium">SKU</th>
                     <th className="px-4 py-3 font-medium">Giá</th>
-                    <th className="px-4 py-3 font-medium">Tồn</th>
+                    <th className="px-4 py-3 font-medium">Tồn kho</th>
                     <th className="px-4 py-3 font-medium">Trạng thái</th>
                     <th className="px-4 py-3 text-right font-medium">Thao tác</th>
                   </tr>
@@ -377,7 +398,25 @@ export default function AdminProductsPage() {
                       </td>
                       <td className="px-4 py-4 text-gray-600">{product.sku}</td>
                       <td className="px-4 py-4 font-semibold">{formatCurrency(product.price)}</td>
-                      <td className="px-4 py-4">{product.stock}</td>
+                      <td className="px-4 py-4">
+                        <div className="space-y-1 text-sm">
+                          <p className="font-semibold text-gray-950">Bán: {getDisplayStock(product)}</p>
+                          <p className="text-xs text-gray-500">Product: {product.stock}</p>
+                          {product.variants?.length ? (
+                            <p className="text-xs text-gray-500">Variants: {getVariantStock(product)}</p>
+                          ) : null}
+                          {getDisplayStock(product) <= LOW_STOCK_THRESHOLD ? (
+                            <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                              Sắp hết hàng
+                            </span>
+                          ) : null}
+                          {hasStockMismatch(product) ? (
+                            <span className="ml-1 inline-flex rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                              Lệch stock
+                            </span>
+                          ) : null}
+                        </div>
+                      </td>
                       <td className="px-4 py-4"><AdminStatusBadge status={product.status} /></td>
                       <td className="px-4 py-4">
                         <AdminActionMenu>

@@ -9,6 +9,7 @@ import { useCart, type ProductLike } from "@/components/cart/CartProvider";
 import { QuantityStepper } from "@/components/cart/QuantityStepper";
 import { Button } from "@/components/ui/button";
 import { imageAssets } from "@/config/images";
+import { getSelectedStock } from "@/lib/product-stock";
 
 export type QuickAddProduct = ProductLike & {
   shortDescription?: string | null;
@@ -65,7 +66,7 @@ export function QuickAddDialog({ product, isOpen, onClose }: QuickAddDialogProps
   }
 
   const selectedVariant = product.variants?.find((v) => v.id === selectedVariantId);
-  const stock = selectedVariant?.stock ?? product.stock ?? 0;
+  const stock = getSelectedStock(product, selectedVariantId);
   const price = selectedVariant?.price ?? product.price;
 
   async function handleAdd(action: "add" | "buy") {
@@ -145,7 +146,10 @@ export function QuickAddDialog({ product, isOpen, onClose }: QuickAddDialogProps
                         ? "border-brand-mustard bg-brand-mustard/10 text-brand-coffee shadow-sm"
                         : "border-gray-200 text-gray-600 hover:border-brand-coffee/30 hover:bg-gray-50"
                     }`}
-                    onClick={() => setSelectedVariantId(variant.id)}
+                    onClick={() => {
+                      setSelectedVariantId(variant.id);
+                      setQuantity((current) => Math.min(current, Math.max(variant.stock, 1)));
+                    }}
                     type="button"
                   >
                     {variant.name}

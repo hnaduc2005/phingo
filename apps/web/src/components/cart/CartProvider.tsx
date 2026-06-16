@@ -4,6 +4,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useState 
 
 import { useAuth } from "@/components/auth/AuthProvider";
 import { apiFetch, type ApiResponse } from "@/lib/api";
+import { getDisplayStock, getSelectedStock } from "@/lib/product-stock";
 
 export type ProductLike = {
   id: string;
@@ -12,6 +13,13 @@ export type ProductLike = {
   price: number | string;
   imageUrl?: string | null;
   stock?: number;
+  displayStock?: number | string | null;
+  variants?: {
+    id: string;
+    name: string;
+    price: number | string;
+    stock: number;
+  }[];
 };
 
 export type CartLine = {
@@ -186,10 +194,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const current = readGuestCart();
     const key = `${product.id}:${variantId ?? ""}`;
     const existing = current.find((item) => `${item.productId}:${item.variantId ?? ""}` === key);
+    const selectedVariant = variantId ? product.variants?.find((variant) => variant.id === variantId) : undefined;
+    const availableStock = variantId ? getSelectedStock(product, variantId) : getDisplayStock(product);
+    const nextQuantity = (existing?.quantity ?? 0) + quantity;
+
+    if (nextQuantity > availableStock) {
+      const productName = selectedVariant ? `${product.name} - ${selectedVariant.name}` : product.name;
+      throw new Error(`${productName} chỉ còn ${availableStock} sản phẩm trong kho.`);
+    }
+
     const next = existing
       ? current.map((item) =>
           `${item.productId}:${item.variantId ?? ""}` === key
-            ? { ...item, quantity: item.quantity + quantity }
+            ? { ...item, quantity: nextQuantity, stock: availableStock }
             : item
         )
       : [
@@ -198,12 +215,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
             id: key,
             productId: product.id,
             variantId,
-            name: product.name,
+            name: selectedVariant ? `${product.name} - ${selectedVariant.name}` : product.name,
             slug: product.slug,
             imageUrl: product.imageUrl,
             quantity,
-            price: toNumber(product.price),
-            stock: product.stock,
+            price: toNumber(selectedVariant?.price ?? product.price),
+            stock: availableStock,
           },
         ];
 
@@ -226,7 +243,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const next = readGuestCart().map((item) => (item.id === id ? { ...item, quantity } : item));
+    const current = readGuestCart();
+    const existing = current.find((item) => item.id === id);
+
+    if (existing?.stock !== undefined && quantity > existing.stock) {
+      throw new Error(`${existing.name} chỉ còn ${existing.stock} sản phẩm trong kho.`);
+    }
+
+    const next = current.map((item) => (item.id === id ? { ...item, quantity } : item));
     writeGuestCart(next);
     setItems(next);
   }

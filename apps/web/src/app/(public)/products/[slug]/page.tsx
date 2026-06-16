@@ -13,6 +13,7 @@ import { QuantityStepper } from "@/components/cart/QuantityStepper";
 import { useCart, type ProductLike } from "@/components/cart/CartProvider";
 import { imageAssets } from "@/config/images";
 import { apiFetch, type ApiResponse } from "@/lib/api";
+import { getSelectedStock } from "@/lib/product-stock";
 
 type Product = ProductLike & {
   description?: string | null;
@@ -87,7 +88,7 @@ export default function ProductDetailPage() {
       return;
     }
     
-    const stock = product.variants?.find(v => v.id === selectedVariantId)?.stock ?? product.stock ?? 0;
+    const stock = getSelectedStock(product, selectedVariantId);
     if (quantity > stock) {
       setError(`Vượt quá số lượng tồn kho. Chỉ còn ${stock} sản phẩm.`);
       return;
@@ -122,7 +123,7 @@ export default function ProductDetailPage() {
 
   const selectedVariant = product.variants?.find((variant) => variant.id === selectedVariantId);
   const displayPrice = selectedVariant?.price ?? product.price;
-  const stock = selectedVariant?.stock ?? product.stock ?? 0;
+  const stock = getSelectedStock(product, selectedVariantId);
 
   return (
     <div className="bg-brand-cream">
@@ -179,7 +180,10 @@ export default function ProductDetailPage() {
                               ? "border-brand-mustard bg-brand-beige text-brand-coffee"
                               : "border-brand-coffee/15 text-brand-coffee/70"
                           }`}
-                          onClick={() => setSelectedVariantId(variant.id)}
+                          onClick={() => {
+                            setSelectedVariantId(variant.id);
+                            setQuantity((current) => Math.min(current, Math.max(variant.stock, 1)));
+                          }}
                           type="button"
                         >
                           {variant.name}

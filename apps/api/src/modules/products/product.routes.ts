@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 
 import { fail, ok } from "../../utils/response";
+import { withDisplayStock } from "./product-stock";
 
 export async function productRoutes(app: FastifyInstance) {
   app.get("/", async (_request, reply) => {
@@ -16,7 +17,7 @@ export async function productRoutes(app: FastifyInstance) {
       orderBy: { createdAt: "desc" }
     });
 
-    return ok(reply, "Products fetched", products);
+    return ok(reply, "Products fetched", products.map(withDisplayStock));
   });
 
   app.get<{ Params: { slug: string } }>("/:slug", async (request, reply) => {
@@ -32,6 +33,6 @@ export async function productRoutes(app: FastifyInstance) {
       return fail(reply, "Product not found", undefined, 404);
     }
 
-    return ok(reply, "Product fetched", product);
+    return ok(reply, "Product fetched", withDisplayStock(product));
   });
 }

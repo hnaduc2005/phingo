@@ -112,8 +112,7 @@ async function main() {
         sku: item.sku,
         shortDescription: item.shortDescription,
         status: "ACTIVE",
-        categoryId: category.id,
-        stock: 100
+        categoryId: category.id
       },
       create: {
         name: item.name,
@@ -133,7 +132,6 @@ async function main() {
       update: {
         name: "Gói 250g",
         price: item.price,
-        stock: 100,
         description: "Quy cách gói 250g."
       },
       create: {

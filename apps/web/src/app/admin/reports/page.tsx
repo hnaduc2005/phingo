@@ -23,6 +23,9 @@ type ProductReport = {
   id: string;
   name: string;
   stock: number;
+  displayStock?: number;
+  variantStock?: number;
+  stockMismatch?: boolean;
   status: string;
   _count: {
     orderItems: number;
@@ -108,7 +111,13 @@ export default function AdminReportsPage() {
               {products.map((product) => (
                 <tr key={product.id}>
                   <td className="px-4 py-3 font-semibold">{product.name}</td>
-                  <td className="px-4 py-3">{product.stock}</td>
+                  <td className="px-4 py-3">
+                    <p className="font-semibold">{product.displayStock ?? product.stock}</p>
+                    {product.variantStock !== undefined ? (
+                      <p className="text-xs text-gray-500">Product {product.stock} · Variants {product.variantStock}</p>
+                    ) : null}
+                    {product.stockMismatch ? <p className="text-xs font-semibold text-red-600">Lệch stock</p> : null}
+                  </td>
                   <td className="px-4 py-3">{product.status}</td>
                   <td className="px-4 py-3">{product._count.orderItems}</td>
                 </tr>

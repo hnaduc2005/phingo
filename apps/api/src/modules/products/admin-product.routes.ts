@@ -3,6 +3,7 @@ import type { FastifyInstance } from "fastify";
 
 import { requireRole } from "../../middlewares/require-role";
 import { fail, ok } from "../../utils/response";
+import { withDisplayStock } from "./product-stock";
 
 export async function adminProductRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireRole(["ADMIN"]));
@@ -16,7 +17,7 @@ export async function adminProductRoutes(app: FastifyInstance) {
       orderBy: { createdAt: "desc" }
     });
 
-    return ok(reply, "Products fetched", products);
+    return ok(reply, "Products fetched", products.map(withDisplayStock));
   });
 
   app.post("/", async (request, reply) => {
@@ -25,7 +26,7 @@ export async function adminProductRoutes(app: FastifyInstance) {
       data: body
     });
 
-    return ok(reply, "Product created", product, 201);
+    return ok(reply, "Product created", withDisplayStock({ ...product, variants: [] }), 201);
   });
 
   app.patch<{ Params: { id: string } }>("/:id", async (request, reply) => {
@@ -35,7 +36,7 @@ export async function adminProductRoutes(app: FastifyInstance) {
       data: body
     });
 
-    return ok(reply, "Product updated", product);
+    return ok(reply, "Product updated", withDisplayStock({ ...product, variants: [] }));
   });
 
   app.delete<{ Params: { id: string } }>("/:id", async (request, reply) => {

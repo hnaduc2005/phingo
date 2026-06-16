@@ -25,6 +25,30 @@ const mergeGuestCartSchema = z.object({
   items: z.array(guestCartItemSchema).default([])
 });
 
+type StockErrorItem = {
+  productId: string;
+  variantId?: string;
+  productName: string;
+  requestedQuantity: number;
+  availableStock: number;
+};
+
+class CartStockError extends Error {
+  payload: {
+    code: "INSUFFICIENT_STOCK";
+    items: StockErrorItem[];
+  };
+
+  constructor(item: StockErrorItem) {
+    super(`${item.productName} chỉ còn ${item.availableStock} sản phẩm trong kho.`);
+    this.name = "CartStockError";
+    this.payload = {
+      code: "INSUFFICIENT_STOCK",
+      items: [item]
+    };
+  }
+}
+
 async function findOrCreateCart(app: FastifyInstance, userId: string) {
   const existing = await app.prisma.cart.findUnique({
     where: { userId },
@@ -78,6 +102,7 @@ async function addItemToCart(
   }
 
   const availableStock = variant?.stock ?? product.stock;
+  const productName = variant ? `${product.name} - ${variant.name}` : product.name;
   const existingItem = await app.prisma.cartItem.findFirst({
     where: {
       cartId,
@@ -88,7 +113,13 @@ async function addItemToCart(
   const nextQuantity = (existingItem?.quantity ?? 0) + input.quantity;
 
   if (nextQuantity > availableStock) {
-    throw new Error(`Only ${availableStock} item(s) left in stock`);
+    throw new CartStockError({
+      productId: product.id,
+      variantId: variant?.id,
+      productName,
+      requestedQuantity: nextQuantity,
+      availableStock
+    });
   }
 
   const price = variant?.price ?? product.price;
@@ -138,6 +169,10 @@ export async function cartRoutes(app: FastifyInstance) {
 
       return ok(reply, "Cart item added", item, 201);
     } catch (error) {
+      if (error instanceof CartStockError) {
+        return fail(reply, error.message, error.payload, 409);
+      }
+
       return fail(reply, error instanceof Error ? error.message : "Cannot add cart item", undefined, 400);
     }
   });
@@ -150,6 +185,10 @@ export async function cartRoutes(app: FastifyInstance) {
         cart: {
           userId: request.user.sub
         }
+      },
+      include: {
+        product: true,
+        variant: true
       }
     });
 
@@ -157,13 +196,32 @@ export async function cartRoutes(app: FastifyInstance) {
       return fail(reply, "Cart item not found", undefined, 404);
     }
 
-    const stockOwner = item.variantId
-      ? await app.prisma.productVariant.findUnique({ where: { id: item.variantId } })
-      : await app.prisma.product.findUnique({ where: { id: item.productId } });
-    const availableStock = stockOwner?.stock ?? 0;
+    if (item.product.status !== "ACTIVE") {
+      return fail(reply, "Product is not available", undefined, 400);
+    }
+
+    const availableStock = item.variant?.stock ?? item.product.stock;
 
     if (body.quantity > availableStock) {
-      return fail(reply, `Only ${availableStock} item(s) left in stock`, { availableStock }, 400);
+      const productName = item.variant ? `${item.product.name} - ${item.variant.name}` : item.product.name;
+
+      return fail(
+        reply,
+        `${productName} chỉ còn ${availableStock} sản phẩm trong kho.`,
+        {
+          code: "INSUFFICIENT_STOCK",
+          items: [
+            {
+              productId: item.productId,
+              variantId: item.variantId ?? undefined,
+              productName,
+              requestedQuantity: body.quantity,
+              availableStock
+            }
+          ]
+        },
+        409
+      );
     }
 
     const updated = await app.prisma.cartItem.update({
@@ -190,7 +248,8 @@ export async function cartRoutes(app: FastifyInstance) {
       } catch (error) {
         errors.push({
           item,
-          message: error instanceof Error ? error.message : "Cannot merge item"
+          message: error instanceof Error ? error.message : "Cannot merge item",
+          error: error instanceof CartStockError ? error.payload : undefined
         });
       }
     }

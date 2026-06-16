@@ -206,7 +206,7 @@ export async function accountRoutes(app: FastifyInstance) {
 
     let updated;
     try {
-      updated = await updateOrderStatus(app.prisma, order.id, "CANCELLED");
+      updated = await updateOrderStatus(app.prisma, order.id, "CANCELLED", request.log);
     } catch (error) {
       return fail(reply, error instanceof Error ? error.message : "Cannot cancel order", undefined, 400);
     }

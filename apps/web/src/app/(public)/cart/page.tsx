@@ -4,6 +4,7 @@ import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useCart } from "@/components/cart/CartProvider";
@@ -18,6 +19,7 @@ export default function CartPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
   const { items, subtotal, isLoading, updateItem, removeItem, clearCart } = useCart();
+  const [error, setError] = useState("");
 
   function goCheckout() {
     if (!isAuthenticated) {
@@ -26,6 +28,16 @@ export default function CartPage() {
     }
 
     router.push("/checkout");
+  }
+
+  async function handleUpdateItem(id: string, quantity: number) {
+    setError("");
+
+    try {
+      await updateItem(id, quantity);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không thể cập nhật giỏ hàng.");
+    }
   }
 
   if (isLoading) {
@@ -66,6 +78,8 @@ export default function CartPage() {
             </Button>
           </div>
 
+          {error ? <p className="mb-4 rounded-md bg-red-50 p-3 text-sm font-medium text-red-700">{error}</p> : null}
+
           <div className="space-y-4">
             {items.map((item) => (
               <div key={item.id} className="grid gap-4 rounded-lg border border-brand-coffee/10 p-4 md:grid-cols-[96px_1fr_auto]">
@@ -84,12 +98,15 @@ export default function CartPage() {
                   </Link>
                   <p className="mt-1 text-sm text-brand-coffee/60">Đơn giá: {formatCurrency(item.price)}</p>
                   <p className="mt-1 text-sm text-brand-coffee/60">Tạm tính: {formatCurrency(item.price * item.quantity)}</p>
+                  {item.stock !== undefined ? (
+                    <p className="mt-1 text-xs text-brand-coffee/50">Còn {item.stock} sản phẩm trong kho</p>
+                  ) : null}
                 </div>
                 <div className="flex items-center gap-3 md:flex-col md:items-end">
                   <div className="flex items-center rounded-md border border-brand-coffee/15">
                     <button
                       className="flex h-9 w-9 items-center justify-center"
-                      onClick={() => updateItem(item.id, item.quantity - 1)}
+                      onClick={() => handleUpdateItem(item.id, item.quantity - 1)}
                       type="button"
                     >
                       <Minus className="h-4 w-4" />
@@ -97,13 +114,15 @@ export default function CartPage() {
                     <input
                       className="h-9 w-14 border-x border-brand-coffee/15 text-center outline-none"
                       min={1}
+                      max={item.stock}
                       type="number"
                       value={item.quantity}
-                      onChange={(event) => updateItem(item.id, Number(event.target.value))}
+                      onChange={(event) => handleUpdateItem(item.id, Number(event.target.value))}
                     />
                     <button
                       className="flex h-9 w-9 items-center justify-center"
-                      onClick={() => updateItem(item.id, item.quantity + 1)}
+                      onClick={() => handleUpdateItem(item.id, item.quantity + 1)}
+                      disabled={item.stock !== undefined && item.quantity >= item.stock}
                       type="button"
                     >
                       <Plus className="h-4 w-4" />

@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 
 import { requireRole } from "../../middlewares/require-role";
 import { ok } from "../../utils/response";
+import { withDisplayStock } from "../products/product-stock";
 
 export async function reportRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireRole(["ADMIN"]));
@@ -60,6 +61,11 @@ export async function reportRoutes(app: FastifyInstance) {
         slug: true,
         stock: true,
         status: true,
+        variants: {
+          select: {
+            stock: true
+          }
+        },
         _count: {
           select: { orderItems: true }
         }
@@ -67,7 +73,7 @@ export async function reportRoutes(app: FastifyInstance) {
       orderBy: { createdAt: "desc" }
     });
 
-    return ok(reply, "Product report fetched", products);
+    return ok(reply, "Product report fetched", products.map(withDisplayStock));
   });
 
   app.get("/customers", async (_request, reply) => {

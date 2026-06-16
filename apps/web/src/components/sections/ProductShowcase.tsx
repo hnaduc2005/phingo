@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { QuickAddDialog, type QuickAddProduct } from "@/components/cart/QuickAddDialog";
 import { imageAssets } from "@/config/images";
 import { apiFetch, type ApiResponse } from "@/lib/api";
+import { getDisplayStock } from "@/lib/product-stock";
 
 // Use QuickAddProduct which extends ProductLike
 
@@ -109,7 +110,7 @@ export function ProductShowcase() {
                   <div className="mt-auto flex items-center justify-between border-t border-brand-coffee/10 pt-6">
                     <div>
                       <div className="text-xl font-bold text-brand-coffee">{formatCurrency(product.price)}</div>
-                      <div className="text-xs text-brand-coffee/60">Còn {product.stock ?? 0} sản phẩm</div>
+                      <div className="text-xs text-brand-coffee/60">Còn {getDisplayStock(product)} sản phẩm</div>
                     </div>
                     <div className="flex gap-2">
                       <Button asChild variant="outline" size="sm" className="rounded-full border-brand-coffee/20">
@@ -120,7 +121,7 @@ export function ProductShowcase() {
                         size="sm"
                         className="rounded-full"
                         onClick={() => handleOpenAddDialog(product)}
-                        disabled={!product.stock}
+                        disabled={getDisplayStock(product) <= 0}
                       >
                         <ShoppingCart className="h-4 w-4" />
                         Mua

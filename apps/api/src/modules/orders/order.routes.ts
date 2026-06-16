@@ -3,16 +3,28 @@ import type { FastifyInstance } from "fastify";
 
 import { requireRole } from "../../middlewares/require-role";
 import { fail, ok } from "../../utils/response";
-import { createOrder, getBankTransferInfo } from "./order.service";
+import { createOrder, getBankTransferInfo, InsufficientStockError } from "./order.service";
 
 export async function orderRoutes(app: FastifyInstance) {
   app.post("/", { preHandler: requireRole(["CUSTOMER", "ADMIN"]) }, async (request, reply) => {
     const body = createOrderSchema.parse(request.body);
     try {
-      const order = await createOrder(app.prisma, request.user.sub, body);
+      const order = await createOrder(app.prisma, request.user.sub, body, request.log);
 
       return ok(reply, "Order created", order, 201);
     } catch (error) {
+      if (error instanceof InsufficientStockError) {
+        return fail(
+          reply,
+          "Một số sản phẩm không đủ tồn kho",
+          {
+            code: error.code,
+            items: error.items
+          },
+          409
+        );
+      }
+
       return fail(reply, error instanceof Error ? error.message : "Cannot create order", undefined, 400);
     }
   });

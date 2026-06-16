@@ -49,6 +49,17 @@ type Promotion = {
   discountValue: number | string;
 };
 
+type StockErrorPayload = {
+  code: "INSUFFICIENT_STOCK";
+  items: {
+    productId: string;
+    variantId?: string | null;
+    productName?: string;
+    requestedQuantity: number;
+    availableStock: number;
+  }[];
+};
+
 const emptyAddress = {
   receiverName: "",
   receiverPhone: "",
@@ -64,6 +75,17 @@ function formatCurrency(value: number) {
 
 function formatAddress(address: Address) {
   return `${address.receiverName} - ${address.receiverPhone}, ${address.addressLine}, ${address.ward}, ${address.district}, ${address.city}`;
+}
+
+function isStockErrorPayload(error: unknown): error is StockErrorPayload {
+  return (
+    error !== null &&
+    typeof error === "object" &&
+    "code" in error &&
+    error.code === "INSUFFICIENT_STOCK" &&
+    "items" in error &&
+    Array.isArray(error.items)
+  );
 }
 
 export default function CheckoutPage() {
@@ -219,9 +241,24 @@ export default function CheckoutPage() {
       }
 
       await refreshCart();
+      window.dispatchEvent(new Event("phingo-products-invalidated"));
       router.replace(`/order-success?orderId=${payload.data.id}&orderCode=${payload.data.orderCode}`);
     } catch (err) {
-      if (err instanceof ApiError && err.fields && err.fields.length > 0) {
+      if (err instanceof ApiError && isStockErrorPayload(err.error)) {
+        const messages = err.error.items.map((stockItem) => {
+          const cartItem = items.find(
+            (item) =>
+              item.productId === stockItem.productId &&
+              (item.variantId ?? undefined) === (stockItem.variantId ?? undefined)
+          );
+          const productName = stockItem.productName || cartItem?.name || "Sản phẩm";
+
+          return `${productName} chỉ còn ${stockItem.availableStock} sản phẩm trong kho.`;
+        });
+
+        setError(messages.join(" "));
+        await refreshCart().catch(() => undefined);
+      } else if (err instanceof ApiError && err.fields && err.fields.length > 0) {
         const errors: Record<string, string> = {};
         for (const field of err.fields) {
           errors[field.field] = field.message;

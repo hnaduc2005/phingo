@@ -55,7 +55,7 @@ export async function adminOrderRoutes(app: FastifyInstance) {
   app.patch<{ Params: { id: string } }>("/:id/status", async (request, reply) => {
     const body = updateOrderStatusSchema.parse(request.body);
     try {
-      const order = await updateOrderStatus(app.prisma, request.params.id, body.status);
+      const order = await updateOrderStatus(app.prisma, request.params.id, body.status, request.log);
 
       return ok(reply, "Order status updated", order);
     } catch (error) {
@@ -65,7 +65,7 @@ export async function adminOrderRoutes(app: FastifyInstance) {
 
   app.patch<{ Params: { id: string } }>("/:id/cancel", async (request, reply) => {
     try {
-      const order = await updateOrderStatus(app.prisma, request.params.id, "CANCELLED");
+      const order = await updateOrderStatus(app.prisma, request.params.id, "CANCELLED", request.log);
 
       return ok(reply, "Order cancelled", order);
     } catch (error) {

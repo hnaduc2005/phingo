@@ -83,6 +83,7 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}) {
   try {
     response = await fetch(`${apiBaseUrl}${path}`, {
       ...options,
+      cache: options.cache ?? "no-store",
       headers,
     });
   } catch (error) {
