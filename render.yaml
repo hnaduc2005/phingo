@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: phingo-api
+    runtime: node
+    plan: starter
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @phingo/database db:generate && pnpm --filter @phingo/database db:deploy && pnpm --filter @phingo/api build
+    startCommand: pnpm --filter @phingo/api start
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: CORS_ORIGIN
+        sync: false

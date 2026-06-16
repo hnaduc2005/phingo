@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: phingo-api
+    runtime: node
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @phingo/database db:generate && pnpm --filter @phingo/database db:deploy && pnpm --filter @phingo/api build
+    startCommand: pnpm --filter @phingo/api start
+    healthCheckPath: /health

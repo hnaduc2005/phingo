@@ -1,0 +1,138 @@
+@import "tailwindcss";
+
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-brand-cream: #FDFBF7;
+  --color-brand-beige: #F5EFE6;
+  --color-brand-coffee: #4A3320;
+  --color-brand-warm-white: #FFFCF8;
+  --color-brand-mustard: #D4AF37;
+  --color-brand-green: #1B4332;
+  --color-brand-blue: #1A365D;
+  --color-brand-gold: #C5A059;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+:root {
+  --background: #FDFBF7; /* brand cream */
+  --foreground: #4A3320; /* brand coffee */
+
+  --card: #ffffff;
+  --card-foreground: #4A3320;
+
+  --popover: #ffffff;
+  --popover-foreground: #4A3320;
+
+  --primary: #4A3320;
+  --primary-foreground: #ffffff;
+
+  --secondary: #F5EFE6;
+  --secondary-foreground: #4A3320;
+
+  --muted: #F5EFE6;
+  --muted-foreground: #735A45;
+
+  --accent: #C5A059;
+  --accent-foreground: #ffffff;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #f8fafc;
+
+  --border: #E8DCC8;
+  --input: #E8DCC8;
+  --ring: #4A3320;
+
+  --radius: 1rem;
+}
+
+.dark {
+  --background: #2C1E16;
+  --foreground: #FDFBF7;
+
+  --card: #3A2A20;
+  --card-foreground: #FDFBF7;
+
+  --popover: #3A2A20;
+  --popover-foreground: #FDFBF7;
+
+  --primary: #C5A059;
+  --primary-foreground: #2C1E16;
+
+  --secondary: #4A3320;
+  --secondary-foreground: #FDFBF7;
+
+  --muted: #4A3320;
+  --muted-foreground: #A18D7A;
+
+  --accent: #C5A059;
+  --accent-foreground: #ffffff;
+
+  --destructive: #7f1d1d;
+  --destructive-foreground: #f8fafc;
+
+  --border: #4A3320;
+  --input: #4A3320;
+  --ring: #C5A059;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-brand-gold selection:text-white;
+  }
+}
+
+/* Custom Utilities for 3D & Premium Feel */
+@layer utilities {
+  .glass-panel {
+    @apply bg-white/70 dark:bg-black/40 backdrop-blur-md border border-white/20 dark:border-white/10 shadow-[0_8px_32px_0_rgba(74,51,32,0.1)];
+  }
+  
+  .glass-card {
+    @apply bg-white/80 dark:bg-[#3A2A20]/80 backdrop-blur-lg border border-white/50 dark:border-white/10 shadow-xl;
+  }
+
+  .text-glow {
+    text-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+  }
+
+  .shadow-3d {
+    box-shadow: 0 20px 40px -15px rgba(74, 51, 32, 0.2), 0 10px 20px -10px rgba(74, 51, 32, 0.1);
+  }
+}

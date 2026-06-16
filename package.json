@@ -1,0 +1,27 @@
+{
+  "name": "phingo-commerce",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:web": "pnpm --filter @phingo/web dev",
+    "dev:api": "pnpm --filter @phingo/api dev",
+    "build": "turbo build --concurrency=1",
+    "build:web": "pnpm --filter @phingo/web build",
+    "build:api": "pnpm --filter @phingo/api build",
+    "lint": "turbo lint",
+    "db:generate": "pnpm --filter @phingo/database db:generate",
+    "db:migrate": "pnpm --filter @phingo/database db:migrate",
+    "db:deploy": "pnpm --filter @phingo/database db:deploy",
+    "db:seed": "pnpm --filter @phingo/database db:seed"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20.11.0",
+    "pnpm": ">=9.0.0"
+  }
+}
