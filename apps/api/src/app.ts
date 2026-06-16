@@ -56,10 +56,11 @@ export async function buildApp() {
   await app.register(prismaPlugin);
   await app.register(authPlugin);
 
-  app.get("/health", async (_request, reply) => {
+  app.get("/api/health", async (_request, reply) => {
     return reply.send({
       success: true,
-      message: "PHIN GO API is healthy",
+      message: "PHIN GO API is running",
+      timestamp: new Date().toISOString(),
       data: {
         service: "phingo-api"
       }

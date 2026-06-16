@@ -12,7 +12,7 @@ export const corsPlugin = fp(async (app) => {
     credentials: true,
     origin(origin, callback) {
       if (!origin || allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
-        callback(null, true);
+        callback(null, origin || true);
         return;
       }
 

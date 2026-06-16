@@ -55,8 +55,12 @@ Web chạy ở `http://localhost:3000`, API chạy ở `http://localhost:4000`.
 - Env:
 
 ```bash
-NEXT_PUBLIC_API_URL=https://your-render-api.onrender.com
+NEXT_PUBLIC_API_URL=https://phingo.onrender.com
 ```
+
+> **Lưu ý quan trọng cho Vercel:** 
+> - `NEXT_PUBLIC_API_URL` tuyệt đối **KHÔNG ĐƯỢC** chứa `/api` ở cuối (VD: đúng là `https://phingo.onrender.com`, sai là `https://phingo.onrender.com/api`). Mã nguồn frontend đã tự động nối thêm `/api` khi gọi endpoint.
+> - Sau khi thêm hoặc thay đổi Environment Variables trên Vercel, bạn bắt buộc phải **Trigger Redeploy** (Deploy lại ứng dụng) thì biến môi trường này mới được ghi nhận vào bản build.
 
 Không cấu hình `DATABASE_URL` cho Vercel vì web không cần truy cập database trực tiếp.
 

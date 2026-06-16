@@ -54,7 +54,9 @@ type ApiOptions = RequestInit & {
   skipAuthRefresh?: boolean;
 };
 
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+// Strip trailing slash if present to avoid //api paths
+const apiBaseUrl = rawApiUrl.replace(/\/$/, "");
 
 export async function apiFetch<T>(path: string, options: ApiOptions = {}) {
   if (!apiBaseUrl) {
@@ -73,10 +75,20 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    ...options,
-    headers,
-  });
+  if (process.env.NODE_ENV === "development") {
+    console.log(`[API Request] ${options.method || "GET"} ${apiBaseUrl}${path}`);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${apiBaseUrl}${path}`, {
+      ...options,
+      headers,
+    });
+  } catch (error) {
+    // Network errors (like CORS, server down, DNS) throw a TypeError
+    throw new ApiError("Không thể kết nối đến máy chủ. Vui lòng kiểm tra API hoặc thử lại sau.", 0, error);
+  }
 
   const text = await response.text();
   let payload = {} as T;
