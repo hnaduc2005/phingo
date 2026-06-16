@@ -55,8 +55,8 @@ type ApiOptions = RequestInit & {
 };
 
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-// Strip trailing slash if present to avoid //api paths
-const apiBaseUrl = rawApiUrl.replace(/\/$/, "");
+// Strip trailing /api and slash if present to avoid /api/api paths, because the path argument already includes /api
+const apiBaseUrl = rawApiUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
 
 export async function apiFetch<T>(path: string, options: ApiOptions = {}) {
   if (!apiBaseUrl) {
@@ -87,7 +87,7 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}) {
     });
   } catch (error) {
     // Network errors (like CORS, server down, DNS) throw a TypeError
-    throw new ApiError("Không thể kết nối đến máy chủ. Vui lòng kiểm tra API hoặc thử lại sau.", 0, error);
+    throw new ApiError("Không thể kết nối đến máy chủ. Vui lòng thử lại sau.", 0, error);
   }
 
   const text = await response.text();
