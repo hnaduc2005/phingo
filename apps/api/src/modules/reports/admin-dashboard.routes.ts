@@ -2,13 +2,14 @@ import type { FastifyInstance } from "fastify";
 
 import { requireRole } from "../../middlewares/require-role";
 import { ok } from "../../utils/response";
+import { completedRevenueWhere, getCompletedProductSales, getCompletedRevenueSummary } from "./revenue";
 
 export async function adminDashboardRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireRole(["ADMIN"]));
 
   app.get("/", async (_request, reply) => {
     const [
-      revenue,
+      revenueSummary,
       orderCount,
       customerCount,
       pendingOrders,
@@ -21,32 +22,14 @@ export async function adminDashboardRoutes(app: FastifyInstance) {
       latestStores,
       completedOrders
     ] = await Promise.all([
-        app.prisma.order.aggregate({
-          where: { status: "COMPLETED" },
-          _sum: { totalAmount: true }
-        }),
+        getCompletedRevenueSummary(app.prisma),
         app.prisma.order.count(),
         app.prisma.user.count({ where: { role: "CUSTOMER" } }),
         app.prisma.order.count({ where: { status: "PENDING" } }),
         app.prisma.payment.count({ where: { status: "PENDING" } }),
         app.prisma.product.count({ where: { status: "ACTIVE" } }),
         app.prisma.storeLocation.count(),
-        app.prisma.product.findMany({
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            _count: {
-              select: { orderItems: true }
-            }
-          },
-          orderBy: {
-            orderItems: {
-              _count: "desc"
-            }
-          },
-          take: 5
-        }),
+        getCompletedProductSales(app.prisma, { take: 5 }),
         app.prisma.order.findMany({
           include: {
             payment: true,
@@ -83,7 +66,7 @@ export async function adminDashboardRoutes(app: FastifyInstance) {
         }),
         app.prisma.order.findMany({
           where: {
-            status: "COMPLETED",
+            ...completedRevenueWhere,
             createdAt: {
               gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
             }
@@ -101,7 +84,8 @@ export async function adminDashboardRoutes(app: FastifyInstance) {
     }, {});
 
     return ok(reply, "Admin dashboard fetched", {
-      totalRevenue: revenue._sum.totalAmount ?? 0,
+      totalRevenue: revenueSummary.totalRevenue,
+      completedOrderCount: revenueSummary.completedOrderCount,
       orderCount,
       customerCount,
       pendingOrders,

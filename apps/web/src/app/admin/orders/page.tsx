@@ -3,9 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { AdminPageHeader } from "@/components/common/AdminPageHeader";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { apiFetch, type ApiResponse } from "@/lib/api";
+import { formatCurrencyVND, formatDateTimeVN } from "@/lib/format";
+import { getOrderStatusLabel, getPaymentStatusLabel } from "@/lib/i18n/status-labels";
 
 type Order = {
   id: string;
@@ -20,10 +22,7 @@ type Order = {
 };
 
 const orderStatuses = ["PENDING", "CONFIRMED", "PACKING", "SHIPPING", "COMPLETED", "CANCELLED"];
-
-function formatCurrency(value: number | string) {
-  return Number(value).toLocaleString("vi-VN");
-}
+const paymentStatuses = ["UNPAID", "PENDING", "PAID", "FAILED", "REFUNDED"];
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -87,14 +86,19 @@ export default function AdminOrdersPage() {
       <AdminPageHeader title="Đơn hàng" description="Xem đơn hàng, cập nhật trạng thái xử lý và theo dõi thanh toán." />
       <section className="rounded-lg border border-gray-100 bg-white p-6 shadow-sm">
         <div className="mb-5 grid gap-3 md:grid-cols-3">
-          <input className="h-10 rounded-md border border-gray-200 px-3" placeholder="Tìm mã đơn, tên, SĐT..." value={query} onChange={(event) => setQuery(event.target.value)} />
+          <input
+            className="h-10 rounded-md border border-gray-200 px-3"
+            placeholder="Tìm mã đơn, tên, SĐT..."
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
           <select className="h-10 rounded-md border border-gray-200 px-3" value={status} onChange={(event) => setStatus(event.target.value)}>
             <option value="">Tất cả trạng thái đơn</option>
-            {orderStatuses.map((item) => <option key={item} value={item}>{item}</option>)}
+            {orderStatuses.map((item) => <option key={item} value={item}>{getOrderStatusLabel(item)}</option>)}
           </select>
           <select className="h-10 rounded-md border border-gray-200 px-3" value={paymentStatus} onChange={(event) => setPaymentStatus(event.target.value)}>
             <option value="">Tất cả thanh toán</option>
-            {["UNPAID", "PENDING", "PAID", "FAILED", "REFUNDED"].map((item) => <option key={item} value={item}>{item}</option>)}
+            {paymentStatuses.map((item) => <option key={item} value={item}>{getPaymentStatusLabel(item)}</option>)}
           </select>
         </div>
         {message ? <p className="mb-4 rounded-md bg-green-50 p-3 text-sm text-green-700">{message}</p> : null}
@@ -104,6 +108,7 @@ export default function AdminOrdersPage() {
               <tr>
                 <th className="px-4 py-3">Mã đơn</th>
                 <th className="px-4 py-3">Khách hàng</th>
+                <th className="px-4 py-3">Ngày đặt</th>
                 <th className="px-4 py-3">Tổng</th>
                 <th className="px-4 py-3">Đơn hàng</th>
                 <th className="px-4 py-3">Thanh toán</th>
@@ -118,13 +123,14 @@ export default function AdminOrdersPage() {
                     <p>{order.customerName}</p>
                     <p className="text-gray-500">{order.customerPhone}</p>
                   </td>
-                  <td className="px-4 py-3 font-semibold">{formatCurrency(order.totalAmount)}đ</td>
-                  <td className="px-4 py-3"><Badge variant="outline">{order.status}</Badge></td>
-                  <td className="px-4 py-3"><Badge variant="secondary">{order.paymentStatus}</Badge></td>
+                  <td className="px-4 py-3 text-gray-600">{formatDateTimeVN(order.createdAt)}</td>
+                  <td className="px-4 py-3 font-semibold">{formatCurrencyVND(order.totalAmount)}</td>
+                  <td className="px-4 py-3"><StatusBadge type="order" value={order.status} /></td>
+                  <td className="px-4 py-3"><StatusBadge type="payment" value={order.paymentStatus} /></td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">
                       <select className="h-9 rounded-md border border-gray-200 px-2" value={order.status} onChange={(event) => updateStatus(order.id, event.target.value)}>
-                        {orderStatuses.map((item) => <option key={item} value={item}>{item}</option>)}
+                        {orderStatuses.map((item) => <option key={item} value={item}>{getOrderStatusLabel(item)}</option>)}
                       </select>
                       {order.status !== "CANCELLED" ? (
                         <Button variant="outline" size="sm" onClick={() => cancelOrder(order.id)}>

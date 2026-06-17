@@ -9,6 +9,7 @@ import { useCart, type ProductLike } from "@/components/cart/CartProvider";
 import { QuantityStepper } from "@/components/cart/QuantityStepper";
 import { Button } from "@/components/ui/button";
 import { imageAssets } from "@/config/images";
+import { isRemoteImageSrc, safeImageSrc } from "@/lib/image-src";
 import { getSelectedStock } from "@/lib/product-stock";
 
 export type QuickAddProduct = ProductLike & {
@@ -36,7 +37,7 @@ const productImages: Record<string, string> = {
 };
 
 function productImage(product: QuickAddProduct) {
-  return product.imageUrl || productImages[product.slug] || imageAssets.productGroup;
+  return safeImageSrc(product.imageUrl, productImages[product.slug] || imageAssets.productGroup);
 }
 
 function formatCurrency(value: number | string) {
@@ -118,6 +119,7 @@ export function QuickAddDialog({ product, isOpen, onClose }: QuickAddDialogProps
               alt={product.name}
               fill
               className="object-contain"
+              unoptimized={isRemoteImageSrc(productImage(product))}
             />
           </div>
           <div className="flex flex-col justify-center">

@@ -3,6 +3,7 @@ import type { FastifyInstance } from "fastify";
 
 import { requireRole } from "../../middlewares/require-role";
 import { fail, ok } from "../../utils/response";
+import { syncProductStockFromVariants } from "./product-stock";
 
 export async function adminProductVariantRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireRole(["ADMIN"]));
@@ -36,11 +37,17 @@ export async function adminProductVariantRoutes(app: FastifyInstance) {
       return fail(reply, "Product not found", undefined, 404);
     }
 
-    const variant = await app.prisma.productVariant.create({
-      data: {
-        ...body,
-        productId: request.params.productId
-      }
+    const variant = await app.prisma.$transaction(async (tx) => {
+      const created = await tx.productVariant.create({
+        data: {
+          ...body,
+          productId: request.params.productId
+        }
+      });
+
+      await syncProductStockFromVariants(tx, request.params.productId);
+
+      return created;
     });
 
     return ok(reply, "Product variant created", variant, 201);
@@ -56,9 +63,15 @@ export async function adminProductVariantRoutes(app: FastifyInstance) {
       return fail(reply, "Product variant not found", undefined, 404);
     }
 
-    const variant = await app.prisma.productVariant.update({
-      where: { id: request.params.id },
-      data: body
+    const variant = await app.prisma.$transaction(async (tx) => {
+      const updated = await tx.productVariant.update({
+        where: { id: request.params.id },
+        data: body
+      });
+
+      await syncProductStockFromVariants(tx, existing.productId);
+
+      return updated;
     });
 
     return ok(reply, "Product variant updated", variant);
@@ -81,8 +94,12 @@ export async function adminProductVariantRoutes(app: FastifyInstance) {
       return fail(reply, "Product variant not found", undefined, 404);
     }
 
-    await app.prisma.productVariant.delete({
-      where: { id: request.params.id }
+    await app.prisma.$transaction(async (tx) => {
+      await tx.productVariant.delete({
+        where: { id: request.params.id }
+      });
+
+      await syncProductStockFromVariants(tx, existing.productId);
     });
 
     return ok(reply, "Product variant deleted", {

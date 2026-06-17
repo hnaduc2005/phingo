@@ -1,6 +1,7 @@
 "use client";
 
 import { Edit, Package, Plus, Save, Search, Trash2, X } from "lucide-react";
+import Image from "next/image";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import {
@@ -17,6 +18,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { apiFetch, type ApiResponse } from "@/lib/api";
 import { normalizeEmptyToUndefined, toNumberOrUndefined, trimPayload } from "@/lib/form-normalize";
+import { isRemoteImageSrc, isSafeImageSrc } from "@/lib/image-src";
+import { getProductStatusLabel } from "@/lib/i18n/status-labels";
 
 type ProductStatus = "DRAFT" | "ACTIVE" | "INACTIVE";
 
@@ -172,6 +175,10 @@ function variantPayload(form: VariantForm) {
   });
 }
 
+function isValidOptionalImageSrc(value: string) {
+  return !value.trim() || isSafeImageSrc(value);
+}
+
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -190,6 +197,8 @@ export default function AdminProductsPage() {
   const [toast, setToast] = useState<{ type: "success" | "error"; text: string } | undefined>();
 
   const activeProduct = products.find((product) => product.id === activeProductId);
+  const productImagePreview = productForm.imageUrl.trim();
+  const canPreviewProductImage = isSafeImageSrc(productImagePreview);
 
   async function loadProducts() {
     setIsLoading(true);
@@ -256,6 +265,12 @@ export default function AdminProductsPage() {
   async function saveProduct(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setToast(undefined);
+
+    if (!isValidOptionalImageSrc(productForm.imageUrl)) {
+      setToast({ type: "error", text: "URL ảnh phải là đường dẫn nội bộ, http/https hoặc data image hợp lệ." });
+      return;
+    }
+
     setIsSavingProduct(true);
 
     try {
@@ -367,7 +382,7 @@ export default function AdminProductsPage() {
             <select className="h-10 rounded-md border border-gray-200 px-3 text-sm" value={status} onChange={(event) => setStatus(event.target.value)}>
               <option value="">Tất cả trạng thái</option>
               {["DRAFT", "ACTIVE", "INACTIVE"].map((item) => (
-                <option key={item} value={item}>{item}</option>
+                <option key={item} value={item}>{getProductStatusLabel(item)}</option>
               ))}
             </select>
             <Button type="button" variant="premium" onClick={resetProductForm}>
@@ -417,7 +432,7 @@ export default function AdminProductsPage() {
                           ) : null}
                         </div>
                       </td>
-                      <td className="px-4 py-4"><AdminStatusBadge status={product.status} /></td>
+                      <td className="px-4 py-4"><AdminStatusBadge type="product" status={product.status} /></td>
                       <td className="px-4 py-4">
                         <AdminActionMenu>
                           <Button type="button" variant="outline" size="sm" onClick={() => startEditProduct(product)}>
@@ -480,14 +495,50 @@ export default function AdminProductsPage() {
                 </FormFieldWrapper>
                 <FormFieldWrapper label="Trạng thái">
                   <select className="h-10 w-full rounded-md border border-gray-200 px-3" value={productForm.status} onChange={(event) => setProductForm((current) => ({ ...current, status: event.target.value as ProductStatus }))}>
-                    <option value="DRAFT">DRAFT</option>
-                    <option value="ACTIVE">ACTIVE</option>
-                    <option value="INACTIVE">INACTIVE</option>
+                    <option value="DRAFT">{getProductStatusLabel("DRAFT")}</option>
+                    <option value="ACTIVE">{getProductStatusLabel("ACTIVE")}</option>
+                    <option value="INACTIVE">{getProductStatusLabel("INACTIVE")}</option>
                   </select>
                 </FormFieldWrapper>
               </div>
               <FormFieldWrapper label="URL ảnh">
                 <input className="h-10 w-full rounded-md border border-gray-200 px-3" value={productForm.imageUrl} onChange={(event) => setProductForm((current) => ({ ...current, imageUrl: event.target.value }))} />
+                <p className="mt-1 text-xs text-gray-500">
+                  Dùng đường dẫn nội bộ như /images/product.png hoặc URL http/https. Trường này chưa upload file trực tiếp.
+                </p>
+                <div className="mt-3 flex items-center gap-3 rounded-md border border-gray-100 bg-gray-50 p-3">
+                  <div className="relative h-20 w-20 overflow-hidden rounded-md bg-white">
+                    {canPreviewProductImage ? (
+                      <Image
+                        src={productImagePreview}
+                        alt="Xem trước ảnh sản phẩm"
+                        fill
+                        className="object-contain p-2"
+                        unoptimized={isRemoteImageSrc(productImagePreview)}
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center px-2 text-center text-xs text-gray-400">
+                        Chưa có ảnh
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1 text-xs text-gray-500">
+                    {productImagePreview && !canPreviewProductImage ? (
+                      <p className="font-semibold text-red-600">URL ảnh không hợp lệ.</p>
+                    ) : (
+                      <p>Ảnh từ admin sẽ được ưu tiên hiển thị ngoài website.</p>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!productForm.imageUrl}
+                    onClick={() => setProductForm((current) => ({ ...current, imageUrl: "" }))}
+                  >
+                    Xóa ảnh
+                  </Button>
+                </div>
               </FormFieldWrapper>
               <FormFieldWrapper label="Mô tả ngắn">
                 <textarea className="min-h-20 w-full rounded-md border border-gray-200 px-3 py-2" value={productForm.shortDescription} onChange={(event) => setProductForm((current) => ({ ...current, shortDescription: event.target.value }))} />

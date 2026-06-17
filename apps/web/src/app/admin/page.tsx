@@ -13,14 +13,17 @@ import {
 } from "@/components/admin/AdminUi";
 import { Button } from "@/components/ui/button";
 import { apiFetch, type ApiResponse } from "@/lib/api";
+import { getPaymentMethodLabel } from "@/lib/i18n/status-labels";
 
 type TopProduct = {
+  productId: string;
   id: string;
+  productName: string;
   name: string;
   slug: string;
-  _count: {
-    orderItems: number;
-  };
+  imageUrl?: string | null;
+  totalQuantitySold: number;
+  totalRevenue: number | string;
 };
 
 type DashboardOrder = {
@@ -58,6 +61,7 @@ type LatestStore = {
 type DashboardData = {
   totalRevenue: number | string;
   orderCount: number;
+  completedOrderCount: number;
   customerCount: number;
   pendingOrders: number;
   pendingPayments: number;
@@ -126,8 +130,9 @@ export default function AdminDashboardPage() {
   }
 
   const stats = [
-    { title: "Tổng doanh thu", value: formatCurrency(dashboard?.totalRevenue ?? 0), icon: DollarSign, tone: "green" as const },
+    { title: "Doanh thu hoàn tất", value: formatCurrency(dashboard?.totalRevenue ?? 0), icon: DollarSign, tone: "green" as const },
     { title: "Tổng đơn hàng", value: dashboard?.orderCount ?? 0, icon: ShoppingBag, tone: "blue" as const },
+    { title: "Đơn hoàn tất", value: dashboard?.completedOrderCount ?? 0, icon: Package, tone: "green" as const },
     { title: "Đơn chờ xác nhận", value: dashboard?.pendingOrders ?? 0, icon: Clock, tone: "amber" as const },
     { title: "Thanh toán chờ", value: dashboard?.pendingPayments ?? 0, icon: WalletCards, tone: "amber" as const },
     { title: "Khách hàng", value: dashboard?.customerCount ?? 0, icon: Users, tone: "purple" as const },
@@ -217,8 +222,8 @@ export default function AdminDashboardPage() {
                       <p className="text-xs text-gray-500">{order.customerPhone}</p>
                     </td>
                     <td className="px-4 py-3 font-semibold">{formatCurrency(order.totalAmount)}</td>
-                    <td className="px-4 py-3"><AdminStatusBadge status={order.status} /></td>
-                    <td className="px-4 py-3"><AdminStatusBadge status={order.paymentStatus} /></td>
+                    <td className="px-4 py-3"><AdminStatusBadge type="order" status={order.status} /></td>
+                    <td className="px-4 py-3"><AdminStatusBadge type="payment" status={order.paymentStatus} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -245,8 +250,8 @@ export default function AdminDashboardPage() {
                   <p className="font-bold text-gray-950">{formatCurrency(payment.amount)}</p>
                 </div>
                 <div className="mt-3 flex items-center justify-between">
-                  <span className="text-xs text-gray-500">{payment.method}</span>
-                  <AdminStatusBadge status={payment.status} />
+                  <span className="text-xs text-gray-500">{getPaymentMethodLabel(payment.method)}</span>
+                  <AdminStatusBadge type="payment" status={payment.status} />
                 </div>
               </div>
             ))}
@@ -262,12 +267,15 @@ export default function AdminDashboardPage() {
           <h2 className="text-lg font-bold text-gray-950">Sản phẩm bán chạy</h2>
           <div className="mt-4 space-y-3">
             {dashboard?.topProducts?.map((product) => (
-              <div key={product.id} className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3 text-sm">
+              <div key={product.productId} className="flex items-center justify-between gap-4 rounded-lg bg-gray-50 px-4 py-3 text-sm">
                 <div>
-                  <p className="font-semibold text-gray-950">{product.name}</p>
+                  <p className="font-semibold text-gray-950">{product.productName}</p>
                   <p className="text-xs text-gray-500">{product.slug}</p>
                 </div>
-                <span className="font-bold text-gray-900">{product._count.orderItems}</span>
+                <div className="text-right">
+                  <p className="font-bold text-gray-900">{product.totalQuantitySold} bán</p>
+                  <p className="text-xs font-semibold text-gray-500">{formatCurrency(product.totalRevenue)}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -285,7 +293,7 @@ export default function AdminDashboardPage() {
                   <p className="font-semibold text-gray-950">{store.name}</p>
                   <p className="text-xs text-gray-500">{store.district}, {store.city}</p>
                 </div>
-                <AdminStatusBadge status={store.isActive ? "ACTIVE" : "INACTIVE"} />
+                <AdminStatusBadge type="user" status={store.isActive ? "ACTIVE" : "INACTIVE"} />
               </div>
             ))}
           </div>

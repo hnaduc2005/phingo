@@ -4,6 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import { AlertTriangle, MoreHorizontal } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -17,26 +18,6 @@ const toneClasses: Record<Tone, string> = {
   blue: "bg-blue-100 text-blue-700",
   purple: "bg-purple-100 text-purple-700",
   cyan: "bg-cyan-100 text-cyan-700"
-};
-
-const statusTone: Record<string, Tone> = {
-  PENDING: "amber",
-  CONFIRMED: "blue",
-  PACKING: "purple",
-  SHIPPING: "cyan",
-  COMPLETED: "green",
-  CANCELLED: "red",
-  UNPAID: "gray",
-  PAID: "green",
-  FAILED: "red",
-  REFUNDED: "purple",
-  DRAFT: "gray",
-  ACTIVE: "green",
-  INACTIVE: "red",
-  NEW: "amber",
-  READ: "blue",
-  REPLIED: "green",
-  ARCHIVED: "gray"
 };
 
 export function AdminPageTitle({ title, description }: { title: string; description?: string }) {
@@ -77,14 +58,14 @@ export function AdminStatCard({
   );
 }
 
-export function AdminStatusBadge({ status }: { status: string }) {
-  const tone = statusTone[status] ?? "gray";
-
-  return (
-    <span className={cn("inline-flex rounded-full px-2.5 py-1 text-xs font-semibold", toneClasses[tone])}>
-      {status}
-    </span>
-  );
+export function AdminStatusBadge({
+  status,
+  type = "generic"
+}: {
+  status: string;
+  type?: "order" | "payment" | "product" | "user" | "method" | "content" | "contact" | "generic";
+}) {
+  return <StatusBadge type={type} value={status} />;
 }
 
 export function AdminFilterBar({ children }: { children: ReactNode }) {

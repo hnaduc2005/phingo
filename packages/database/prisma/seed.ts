@@ -177,6 +177,12 @@ async function main() {
       content: "Dùng nước nóng, cân đúng lượng cà phê và thời gian chiết xuất phù hợp để đạt vị cân bằng."
     },
     {
+      key: "combo",
+      title: "Combo PHIN GO",
+      slug: "combo",
+      content: "Nội dung combo đang được cập nhật."
+    },
+    {
       key: "contact",
       title: "Liên hệ",
       slug: "contact",
@@ -247,33 +253,62 @@ async function main() {
   });
 
   const settings = [
+    ["siteName", "PHIN GO"],
+    ["slogan", "Gói tinh hoa - Pha tốc độ"],
     ["description", "PHIN GO gói trọn hương vị cà phê phin truyền thống trong túi lọc tiện lợi."],
     ["hotline", "1900 2026"],
+    ["phone", "1900 2026"],
     ["email", "hello@phingo.vn"],
     ["address", "12 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh"],
     ["workingHours", "Thứ 2 - Chủ nhật: 8:00 - 22:00"],
     ["facebookUrl", "https://facebook.com/phingo"],
     ["shopeeUrl", "https://shopee.vn/phingo"],
+    ["tiktokUrl", "https://tiktok.com/@phingo"],
     ["googleMapUrl", "https://maps.google.com"],
+    ["shippingFee", "25000"],
+    ["freeShippingThreshold", "300000"],
+    ["paymentMethod_COD", "true"],
+    ["paymentMethod_BANK_TRANSFER", "true"],
+    ["paymentMethod_MOMO", "false"],
+    ["paymentMethod_VNPAY", "false"],
+    ["paymentMethod_ZALOPAY", "false"],
+    ["paymentMethod_CREDIT_CARD", "false"],
     ["bankName", "Vietcombank"],
     ["bankAccountNumber", "0000000000"],
     ["bankAccountHolder", "CONG TY PHIN GO"],
-    ["bankTransferNoteTemplate", "PHINGO {orderCode}"]
+    ["bankTransferNoteTemplate", "PHINGO {orderCode}"],
+    ["heroTitle", "PHIN GO"],
+    ["heroSubtitle", "Chọn hương vị yêu thích, đăng nhập để checkout, áp mã giảm giá và theo dõi đơn hàng trong tài khoản của bạn."],
+    ["heroImageUrl", "/images/img-1.png"],
+    ["guideTitle", "4 bước đơn giản chuẩn vị phin Việt"],
+    ["guideSubtitle", "Chỉ với vài thao tác nhanh chóng, bạn đã có ngay một ly cà phê đậm đà, thơm ngon đúng điệu."],
+    ["guideImageUrl", "/images/img-2.png"],
+    ["ctaTitle", "Chọn hương vị yêu thích, đặt hàng nhanh và theo dõi đơn trong tài khoản."],
+    ["ctaSubtitle", "Khách hàng đăng nhập trước khi checkout để lưu địa chỉ giao hàng, áp mã giảm giá và theo dõi trạng thái thanh toán."],
+    ["ctaImageUrl", "/images/img-3.png"]
   ] as const;
 
   for (const [key, value] of settings) {
+    const group = key.startsWith("bank") || key.startsWith("paymentMethod_")
+      ? "payment"
+      : key === "shippingFee" || key === "freeShippingThreshold"
+        ? "shipping"
+        : key.startsWith("hero") || key.startsWith("guide") || key.startsWith("cta")
+          ? "marketing"
+          : "general";
+
     await prisma.siteSetting.upsert({
       where: { key },
       update: {
         value,
         type: key.endsWith("Url") ? "URL" : "TEXT",
-        group: key.startsWith("bank") ? "payment" : "general"
+        group
       },
       create: {
         key,
         value,
         type: key.endsWith("Url") ? "URL" : "TEXT",
-        group: key.startsWith("bank") ? "payment" : "general"
+        group
       }
     });
   }

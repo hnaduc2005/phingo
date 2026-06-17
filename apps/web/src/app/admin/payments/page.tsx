@@ -3,9 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { AdminPageHeader } from "@/components/common/AdminPageHeader";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { apiFetch, type ApiResponse } from "@/lib/api";
+import { formatCurrencyVND } from "@/lib/format";
+import { getPaymentMethodLabel, getPaymentStatusLabel } from "@/lib/i18n/status-labels";
 
 type Payment = {
   id: string;
@@ -21,6 +23,9 @@ type Payment = {
     customerPhone: string;
   };
 };
+
+const paymentMethods = ["COD", "BANK_TRANSFER", "MOMO", "VNPAY", "ZALOPAY", "CREDIT_CARD"];
+const paymentStatuses = ["UNPAID", "PENDING", "PAID", "FAILED", "REFUNDED"];
 
 export default function AdminPaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -77,11 +82,11 @@ export default function AdminPaymentsPage() {
         <div className="mb-5 grid gap-3 md:grid-cols-2">
           <select className="h-10 rounded-md border border-gray-200 px-3" value={method} onChange={(event) => setMethod(event.target.value)}>
             <option value="">Tất cả phương thức</option>
-            {["COD", "BANK_TRANSFER", "MOMO", "VNPAY", "ZALOPAY", "CREDIT_CARD"].map((item) => <option key={item} value={item}>{item}</option>)}
+            {paymentMethods.map((item) => <option key={item} value={item}>{getPaymentMethodLabel(item)}</option>)}
           </select>
           <select className="h-10 rounded-md border border-gray-200 px-3" value={status} onChange={(event) => setStatus(event.target.value)}>
             <option value="">Tất cả trạng thái</option>
-            {["UNPAID", "PENDING", "PAID", "FAILED", "REFUNDED"].map((item) => <option key={item} value={item}>{item}</option>)}
+            {paymentStatuses.map((item) => <option key={item} value={item}>{getPaymentStatusLabel(item)}</option>)}
           </select>
         </div>
         {message ? <p className="mb-4 rounded-md bg-green-50 p-3 text-sm text-green-700">{message}</p> : null}
@@ -106,12 +111,12 @@ export default function AdminPaymentsPage() {
                     <p>{payment.order.customerName}</p>
                     <p className="text-gray-500">{payment.order.customerPhone}</p>
                   </td>
-                  <td className="px-4 py-3">{payment.method}</td>
-                  <td className="px-4 py-3 font-semibold">{Number(payment.amount).toLocaleString("vi-VN")}đ</td>
-                  <td className="px-4 py-3"><Badge variant="outline">{payment.status}</Badge></td>
+                  <td className="px-4 py-3">{getPaymentMethodLabel(payment.method)}</td>
+                  <td className="px-4 py-3 font-semibold">{formatCurrencyVND(payment.amount)}</td>
+                  <td className="px-4 py-3"><StatusBadge type="payment" value={payment.status} /></td>
                   <td className="px-4 py-3">
                     {payment.transferImageUrl ? (
-                      <a className="text-brand-blue underline" href={payment.transferImageUrl} target="_blank">
+                      <a className="text-brand-blue underline" href={payment.transferImageUrl} target="_blank" rel="noreferrer">
                         Xem ảnh
                       </a>
                     ) : payment.transactionCode ? payment.transactionCode : "-"}

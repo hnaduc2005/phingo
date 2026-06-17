@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { QuickAddDialog, type QuickAddProduct } from "@/components/cart/QuickAddDialog";
 import { imageAssets } from "@/config/images";
 import { apiFetch, type ApiResponse } from "@/lib/api";
+import { isRemoteImageSrc, safeImageSrc } from "@/lib/image-src";
 import { getDisplayStock } from "@/lib/product-stock";
 
 // Use QuickAddProduct which extends ProductLike
@@ -22,7 +23,7 @@ const productImages: Record<string, string> = {
 };
 
 function productImage(product: QuickAddProduct) {
-  return product.imageUrl || productImages[product.slug] || imageAssets.productGroup;
+  return safeImageSrc(product.imageUrl, productImages[product.slug] || imageAssets.productGroup);
 }
 
 function formatCurrency(value: number | string) {
@@ -93,6 +94,7 @@ export function ProductShowcase() {
                     fill
                     className="object-contain drop-shadow-xl transition-transform duration-500 group-hover:scale-110"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    unoptimized={isRemoteImageSrc(productImage(product))}
                   />
                 </div>
 
@@ -104,7 +106,7 @@ export function ProductShowcase() {
                     {product.name}
                   </h3>
                   <p className="mb-6 line-clamp-3 flex-1 text-sm text-brand-coffee/70">
-                    {product.shortDescription || product.description || "Cà phê phin giấy tiện lợi cho mỗi ngày."}
+                    {product.shortDescription || product.description || ""}
                   </p>
 
                   <div className="mt-auto flex items-center justify-between border-t border-brand-coffee/10 pt-6">

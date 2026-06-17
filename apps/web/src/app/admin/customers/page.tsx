@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { AdminPageHeader } from "@/components/common/AdminPageHeader";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { apiFetch, type ApiResponse } from "@/lib/api";
+import { getUserStatusLabel } from "@/lib/i18n/status-labels";
 
 type Customer = {
   id: string;
@@ -18,6 +19,8 @@ type Customer = {
     addresses: number;
   };
 };
+
+const customerStatuses = ["ACTIVE", "INACTIVE", "BANNED"];
 
 export default function AdminCustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -68,10 +71,15 @@ export default function AdminCustomersPage() {
       <AdminPageHeader title="Khách hàng" description="Quản lý tài khoản khách hàng, trạng thái và lịch sử mua hàng." />
       <section className="rounded-lg border border-gray-100 bg-white p-6 shadow-sm">
         <div className="mb-5 grid gap-3 md:grid-cols-2">
-          <input className="h-10 rounded-md border border-gray-200 px-3" placeholder="Tìm tên, email, SĐT..." value={query} onChange={(event) => setQuery(event.target.value)} />
+          <input
+            className="h-10 rounded-md border border-gray-200 px-3"
+            placeholder="Tìm tên, email, SĐT..."
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
           <select className="h-10 rounded-md border border-gray-200 px-3" value={status} onChange={(event) => setStatus(event.target.value)}>
             <option value="">Tất cả trạng thái</option>
-            {["ACTIVE", "INACTIVE", "BANNED"].map((item) => <option key={item} value={item}>{item}</option>)}
+            {customerStatuses.map((item) => <option key={item} value={item}>{getUserStatusLabel(item)}</option>)}
           </select>
         </div>
         <div className="overflow-x-auto">
@@ -97,9 +105,9 @@ export default function AdminCustomersPage() {
                   <td className="px-4 py-3">{customer._count?.addresses ?? 0}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline">{customer.status}</Badge>
+                      <StatusBadge type="user" value={customer.status} />
                       <select className="h-9 rounded-md border border-gray-200 px-2" value={customer.status} onChange={(event) => updateStatus(customer.id, event.target.value)}>
-                        {["ACTIVE", "INACTIVE", "BANNED"].map((item) => <option key={item} value={item}>{item}</option>)}
+                        {customerStatuses.map((item) => <option key={item} value={item}>{getUserStatusLabel(item)}</option>)}
                       </select>
                     </div>
                   </td>

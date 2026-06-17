@@ -3,7 +3,7 @@ import type { FastifyInstance } from "fastify";
 
 import { requireRole } from "../../middlewares/require-role";
 import { fail, ok } from "../../utils/response";
-import { withDisplayStock } from "./product-stock";
+import { syncProductStockFromVariantsIfAny, withDisplayStock } from "./product-stock";
 
 export async function adminProductRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireRole(["ADMIN"]));
@@ -23,20 +23,40 @@ export async function adminProductRoutes(app: FastifyInstance) {
   app.post("/", async (request, reply) => {
     const body = productUpsertSchema.parse(request.body);
     const product = await app.prisma.product.create({
-      data: body
+      data: body,
+      include: {
+        category: true,
+        variants: true
+      }
     });
 
-    return ok(reply, "Product created", withDisplayStock({ ...product, variants: [] }), 201);
+    return ok(reply, "Product created", withDisplayStock(product), 201);
   });
 
   app.patch<{ Params: { id: string } }>("/:id", async (request, reply) => {
     const body = productUpsertSchema.partial().parse(request.body);
-    const product = await app.prisma.product.update({
-      where: { id: request.params.id },
-      data: body
+    const product = await app.prisma.$transaction(async (tx) => {
+      await tx.product.update({
+        where: { id: request.params.id },
+        data: body
+      });
+
+      await syncProductStockFromVariantsIfAny(tx, request.params.id);
+
+      return tx.product.findUnique({
+        where: { id: request.params.id },
+        include: {
+          category: true,
+          variants: true
+        }
+      });
     });
 
-    return ok(reply, "Product updated", withDisplayStock({ ...product, variants: [] }));
+    if (!product) {
+      return fail(reply, "Product not found", undefined, 404);
+    }
+
+    return ok(reply, "Product updated", withDisplayStock(product));
   });
 
   app.delete<{ Params: { id: string } }>("/:id", async (request, reply) => {

@@ -8,6 +8,8 @@ import { MessageCircle, MapPin, Phone, Mail, ShoppingBag } from "lucide-react"
 
 export function PublicFooter() {
   const [settings, setSettings] = useState<Record<string, string>>({});
+  const siteName = settings.siteName || siteConfig.name;
+  const phone = settings.hotline || settings.phone || siteConfig.phone;
 
   useEffect(() => {
     fetchSettings();
@@ -28,7 +30,7 @@ export function PublicFooter() {
         <div className="col-span-1 md:col-span-2">
           <Link href="/" className="mb-4 inline-block">
             <span className="text-3xl font-bold tracking-tight text-white">
-              PHIN <span className="text-brand-mustard text-glow">GO</span>
+              {siteName}
             </span>
           </Link>
           <p className="mb-6 max-w-sm leading-relaxed text-brand-beige/80">
@@ -37,7 +39,7 @@ export function PublicFooter() {
           <div className="space-y-2 text-sm text-brand-beige/60">
             <div className="flex items-center gap-2">
               <Phone className="w-4 h-4" />
-              <span>Hotline: {settings.hotline || siteConfig.phone}</span>
+              <span>Hotline: {phone}</span>
             </div>
             <div className="flex items-center gap-2">
               <Mail className="w-4 h-4" />
@@ -45,7 +47,7 @@ export function PublicFooter() {
             </div>
             <div className="flex items-start gap-2">
               <MapPin className="w-4 h-4 mt-0.5" />
-              <span>{settings.address || "123 Đường Cà Phê, Quận 1, TP.HCM"}</span>
+              <span>{settings.address || siteConfig.address}</span>
             </div>
           </div>
           
@@ -58,6 +60,11 @@ export function PublicFooter() {
             {settings.shopeeUrl && (
               <a href={settings.shopeeUrl} target="_blank" rel="noreferrer" className="text-brand-beige/80 hover:text-brand-mustard">
                 <ShoppingBag className="w-5 h-5" />
+              </a>
+            )}
+            {settings.tiktokUrl && (
+              <a href={settings.tiktokUrl} target="_blank" rel="noreferrer" className="text-brand-beige/80 hover:text-brand-mustard">
+                <MessageCircle className="w-5 h-5" />
               </a>
             )}
           </div>
@@ -84,7 +91,7 @@ export function PublicFooter() {
         </div>
       </div>
       <div className="container mx-auto mt-12 border-t border-white/10 px-4 pt-8 text-center text-sm text-brand-beige/50">
-        <p>&copy; {new Date().getFullYear()} {siteConfig.name}. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} {siteName}. All rights reserved.</p>
       </div>
     </footer>
   )

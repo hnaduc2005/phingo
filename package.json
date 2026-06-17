@@ -14,7 +14,8 @@
     "db:generate": "pnpm --filter @phingo/database db:generate",
     "db:migrate": "pnpm --filter @phingo/database db:migrate",
     "db:deploy": "pnpm --filter @phingo/database db:deploy",
-    "db:seed": "pnpm --filter @phingo/database db:seed"
+    "db:seed": "pnpm --filter @phingo/database db:seed",
+    "db:sync-commerce": "pnpm --filter @phingo/database db:sync-commerce"
   },
   "devDependencies": {
     "turbo": "^2.3.3",

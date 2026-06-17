@@ -4,8 +4,22 @@ import { MapPin, MessageCircle, ShoppingBag } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { imageAssets } from "@/config/images"
+import { isRemoteImageSrc, safeImageSrc } from "@/lib/image-src"
+import type { PublicSiteSettings } from "@/lib/site-settings"
 
-export function PurchaseCtaSection() {
+type PurchaseCtaSectionProps = {
+  settings?: PublicSiteSettings
+}
+
+export function PurchaseCtaSection({ settings }: PurchaseCtaSectionProps) {
+  const ctaTitle =
+    settings?.ctaTitle?.trim() ||
+    "Chọn hương vị yêu thích, đặt hàng nhanh và theo dõi đơn trong tài khoản."
+  const ctaSubtitle =
+    settings?.ctaSubtitle?.trim() ||
+    "Khách hàng đăng nhập trước khi checkout để lưu địa chỉ giao hàng, áp mã giảm giá và theo dõi trạng thái thanh toán."
+  const ctaImage = safeImageSrc(settings?.ctaImageUrl, imageAssets.showroom)
+
   return (
     <section className="bg-white py-16">
       <div className="container mx-auto grid gap-8 px-4 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
@@ -14,10 +28,10 @@ export function PurchaseCtaSection() {
             Mua PHIN GO
           </p>
           <h2 className="max-w-2xl text-3xl font-bold text-brand-coffee md:text-4xl">
-            Chọn hương vị yêu thích, đặt hàng nhanh và theo dõi đơn trong tài khoản.
+            {ctaTitle}
           </h2>
           <p className="max-w-xl text-brand-coffee/70">
-            Khách hàng đăng nhập trước khi checkout để lưu địa chỉ giao hàng, áp mã giảm giá và theo dõi trạng thái thanh toán.
+            {ctaSubtitle}
           </p>
           <div className="flex flex-wrap gap-3">
             <Button asChild variant="premium">
@@ -42,11 +56,12 @@ export function PurchaseCtaSection() {
         </div>
         <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-brand-beige">
           <Image
-            src={imageAssets.showroom}
+            src={ctaImage}
             alt="Điểm bán PHIN GO"
             fill
             className="object-cover"
             sizes="(max-width: 1024px) 100vw, 42vw"
+            unoptimized={isRemoteImageSrc(ctaImage)}
           />
         </div>
       </div>

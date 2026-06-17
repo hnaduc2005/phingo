@@ -5,9 +5,11 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { BankTransferInfoCard } from "@/components/checkout/BankTransferInfoCard";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { apiFetch, type ApiResponse } from "@/lib/api";
+import { formatCurrencyVND } from "@/lib/format";
+import { getPaymentMethodLabel, getPaymentStatusLabel } from "@/lib/i18n/status-labels";
 
 type Order = {
   id: string;
@@ -40,10 +42,6 @@ type Order = {
     transferContentTemplate?: string | null;
   } | null;
 };
-
-function formatCurrency(value: number | string) {
-  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(Number(value));
-}
 
 export default function AccountOrderDetailPage() {
   const params = useParams<{ id: string }>();
@@ -136,8 +134,8 @@ export default function AccountOrderDetailPage() {
             <p className="mt-2 text-brand-coffee/70">Mã đơn: <span className="font-semibold text-brand-coffee">{order.orderCode}</span></p>
           </div>
           <div className="flex gap-2">
-            <Badge variant="outline">{order.status}</Badge>
-            <Badge variant="secondary">{order.paymentStatus}</Badge>
+            <StatusBadge type="order" value={order.status} />
+            <StatusBadge type="payment" value={order.paymentStatus} />
           </div>
         </div>
         {message ? <p className="mt-4 rounded-md bg-green-50 p-3 text-sm text-green-700">{message}</p> : null}
@@ -162,19 +160,19 @@ export default function AccountOrderDetailPage() {
           ) : null}
 
           <div className="rounded-lg bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-brand-coffee">Sản phẩm</h2>
-          <div className="mt-4 divide-y divide-brand-coffee/10">
-            {order.items.map((item) => (
-              <div key={item.id} className="flex justify-between gap-4 py-3 text-sm">
-                <div>
-                  <p className="font-medium text-brand-coffee">{item.productName}</p>
-                  <p className="text-brand-coffee/60">SL: {item.quantity} x {formatCurrency(item.unitPrice)}</p>
+            <h2 className="text-xl font-semibold text-brand-coffee">Sản phẩm</h2>
+            <div className="mt-4 divide-y divide-brand-coffee/10">
+              {order.items.map((item) => (
+                <div key={item.id} className="flex justify-between gap-4 py-3 text-sm">
+                  <div>
+                    <p className="font-medium text-brand-coffee">{item.productName}</p>
+                    <p className="text-brand-coffee/60">SL: {item.quantity} x {formatCurrencyVND(item.unitPrice)}</p>
+                  </div>
+                  <p className="font-semibold text-brand-coffee">{formatCurrencyVND(item.totalPrice)}</p>
                 </div>
-                <p className="font-semibold text-brand-coffee">{formatCurrency(item.totalPrice)}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
         </div>
 
         <aside className="space-y-6">
@@ -184,7 +182,9 @@ export default function AccountOrderDetailPage() {
           </div>
           <div className="rounded-lg bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-brand-coffee">Thanh toán</h2>
-            <p className="mt-3 text-sm text-brand-coffee/70">{order.paymentMethod} - {order.paymentStatus}</p>
+            <p className="mt-3 text-sm text-brand-coffee/70">
+              {getPaymentMethodLabel(order.paymentMethod)} - {getPaymentStatusLabel(order.paymentStatus)}
+            </p>
             {order.paymentMethod === "BANK_TRANSFER" && order.paymentStatus !== "PAID" ? (
               <div className="mt-4 space-y-2">
                 <input
@@ -208,11 +208,11 @@ export default function AccountOrderDetailPage() {
           <div className="rounded-lg bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-brand-coffee">Tổng cộng</h2>
             <div className="mt-4 space-y-2 text-sm text-brand-coffee/70">
-              <div className="flex justify-between"><span>Tạm tính</span><span>{formatCurrency(order.subtotal)}</span></div>
-              <div className="flex justify-between"><span>Giảm giá</span><span>{formatCurrency(order.discountAmount)}</span></div>
-              <div className="flex justify-between"><span>Vận chuyển</span><span>{formatCurrency(order.shippingFee)}</span></div>
+              <div className="flex justify-between"><span>Tạm tính</span><span>{formatCurrencyVND(order.subtotal)}</span></div>
+              <div className="flex justify-between"><span>Giảm giá</span><span>{formatCurrencyVND(order.discountAmount)}</span></div>
+              <div className="flex justify-between"><span>Vận chuyển</span><span>{formatCurrencyVND(order.shippingFee)}</span></div>
               <div className="flex justify-between border-t border-brand-coffee/10 pt-2 text-lg font-bold text-brand-coffee">
-                <span>Tổng</span><span>{formatCurrency(order.totalAmount)}</span>
+                <span>Tổng</span><span>{formatCurrencyVND(order.totalAmount)}</span>
               </div>
             </div>
             <div className="mt-5 flex flex-col gap-2">

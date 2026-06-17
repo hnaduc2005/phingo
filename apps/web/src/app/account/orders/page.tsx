@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { apiFetch, type ApiResponse } from "@/lib/api";
+import { formatCurrencyVND, formatDateTimeVN } from "@/lib/format";
 
 type Order = {
   id: string;
@@ -16,14 +17,6 @@ type Order = {
   paymentMethod: string;
   createdAt: string;
 };
-
-function formatCurrency(value: number | string) {
-  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(Number(value));
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
-}
 
 export default function AccountOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -72,13 +65,13 @@ export default function AccountOrdersPage() {
             {orders.map((order) => (
               <tr key={order.id}>
                 <td className="px-4 py-4 font-semibold text-brand-coffee">{order.orderCode}</td>
-                <td className="px-4 py-4 text-brand-coffee/70">{formatDate(order.createdAt)}</td>
-                <td className="px-4 py-4 font-semibold text-brand-coffee">{formatCurrency(order.totalAmount)}</td>
+                <td className="px-4 py-4 text-brand-coffee/70">{formatDateTimeVN(order.createdAt)}</td>
+                <td className="px-4 py-4 font-semibold text-brand-coffee">{formatCurrencyVND(order.totalAmount)}</td>
                 <td className="px-4 py-4">
-                  <Badge variant="outline">{order.status}</Badge>
+                  <StatusBadge type="order" value={order.status} />
                 </td>
                 <td className="px-4 py-4">
-                  <Badge variant="secondary">{order.paymentStatus}</Badge>
+                  <StatusBadge type="payment" value={order.paymentStatus} />
                 </td>
                 <td className="px-4 py-4 text-right">
                   <Button asChild variant="outline" size="sm">

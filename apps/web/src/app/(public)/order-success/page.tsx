@@ -8,6 +8,8 @@ import { Suspense, useEffect, useState } from "react";
 import { BankTransferInfoCard } from "@/components/checkout/BankTransferInfoCard";
 import { Button } from "@/components/ui/button";
 import { apiFetch, type ApiResponse } from "@/lib/api";
+import { formatCurrencyVND } from "@/lib/format";
+import { getPaymentMethodLabel, getPaymentStatusLabel } from "@/lib/i18n/status-labels";
 
 type Order = {
   id: string;
@@ -23,10 +25,6 @@ type Order = {
     transferContentTemplate?: string | null;
   } | null;
 };
-
-function formatCurrency(value: number | string) {
-  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(Number(value));
-}
 
 function OrderSuccessContent() {
   const searchParams = useSearchParams();
@@ -62,9 +60,11 @@ function OrderSuccessContent() {
             {order ? (
               <>
                 <p className="mt-2">
-                  Tổng tiền: <span className="font-bold text-brand-coffee">{formatCurrency(order.totalAmount)}</span>
+                  Tổng tiền: <span className="font-bold text-brand-coffee">{formatCurrencyVND(order.totalAmount)}</span>
                 </p>
-                <p className="mt-2">Thanh toán: {order.paymentMethod} - {order.paymentStatus}</p>
+                <p className="mt-2">
+                  Thanh toán: {getPaymentMethodLabel(order.paymentMethod)} - {getPaymentStatusLabel(order.paymentStatus)}
+                </p>
               </>
             ) : null}
           </div>

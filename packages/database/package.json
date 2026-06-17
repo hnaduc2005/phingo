@@ -15,7 +15,8 @@
     "db:migrate": "prisma migrate dev --schema prisma/schema.prisma",
     "db:deploy": "prisma migrate deploy --schema prisma/schema.prisma",
     "db:studio": "prisma studio --schema prisma/schema.prisma",
-    "db:seed": "prisma db seed --schema prisma/schema.prisma"
+    "db:seed": "prisma db seed --schema prisma/schema.prisma",
+    "db:sync-commerce": "tsx prisma/sync-commerce-data.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

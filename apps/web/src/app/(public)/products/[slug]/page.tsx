@@ -13,6 +13,7 @@ import { QuantityStepper } from "@/components/cart/QuantityStepper";
 import { useCart, type ProductLike } from "@/components/cart/CartProvider";
 import { imageAssets } from "@/config/images";
 import { apiFetch, type ApiResponse } from "@/lib/api";
+import { isRemoteImageSrc, safeImageSrc } from "@/lib/image-src";
 import { getSelectedStock } from "@/lib/product-stock";
 
 type Product = ProductLike & {
@@ -37,7 +38,7 @@ const productImages: Record<string, string> = {
 };
 
 function productImage(product: Product) {
-  return product.imageUrl || productImages[product.slug] || imageAssets.productGroup;
+  return safeImageSrc(product.imageUrl, productImages[product.slug] || imageAssets.productGroup);
 }
 
 function formatCurrency(value: number | string) {
@@ -139,6 +140,7 @@ export default function ProductDetailPage() {
                   className="object-contain drop-shadow-2xl"
                   sizes="(max-width: 1024px) 100vw, 50vw"
                   priority
+                  unoptimized={isRemoteImageSrc(productImage(product))}
                 />
               </div>
 

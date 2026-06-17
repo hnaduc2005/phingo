@@ -7,8 +7,21 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { FloatingImage } from "@/components/common/FloatingImage"
 import { imageAssets } from "@/config/images"
+import { isRemoteImageSrc, safeImageSrc } from "@/lib/image-src"
+import type { PublicSiteSettings } from "@/lib/site-settings"
 
-export function HeroSection() {
+type HeroSectionProps = {
+  settings?: PublicSiteSettings
+}
+
+export function HeroSection({ settings }: HeroSectionProps) {
+  const heroTitle = settings?.heroTitle?.trim() || "PHIN GO"
+  const heroSlogan = settings?.slogan?.trim() || "cà phê phin pha nhanh"
+  const heroSubtitle =
+    settings?.heroSubtitle?.trim() ||
+    "Chọn hương vị yêu thích, đăng nhập để checkout, áp mã giảm giá và theo dõi đơn hàng trong tài khoản của bạn."
+  const heroImage = safeImageSrc(settings?.heroImageUrl, imageAssets.hero3d)
+
   return (
     <section className="relative overflow-hidden bg-brand-cream py-20 lg:py-28">
       <div className="container relative z-10 mx-auto grid items-center gap-12 px-4 lg:grid-cols-2">
@@ -25,14 +38,14 @@ export function HeroSection() {
           </div>
 
           <h1 className="text-5xl font-extrabold leading-tight text-brand-coffee lg:text-7xl">
-            PHIN GO
+            {heroTitle}
             <span className="block bg-gradient-to-r from-brand-mustard to-brand-gold bg-clip-text text-transparent">
-              cà phê phin pha nhanh
+              {heroSlogan}
             </span>
           </h1>
 
           <p className="max-w-xl text-lg leading-relaxed text-brand-coffee/80">
-            Chọn hương vị yêu thích, đăng nhập để checkout, áp mã giảm giá và theo dõi đơn hàng trong tài khoản của bạn.
+            {heroSubtitle}
           </p>
 
           <div className="flex flex-wrap items-center gap-4">
@@ -55,12 +68,13 @@ export function HeroSection() {
           className="relative flex h-[420px] items-center justify-center lg:h-[560px]"
         >
           <FloatingImage
-            src={imageAssets.hero3d}
+            src={heroImage}
             alt="PHIN GO Coffee"
             fill
             className="object-contain"
             sizes="(max-width: 768px) 100vw, 50vw"
             priority
+            unoptimized={isRemoteImageSrc(heroImage)}
           />
         </motion.div>
       </div>

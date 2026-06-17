@@ -9,6 +9,12 @@ import { BankTransferInfoCard } from "@/components/checkout/BankTransferInfoCard
 import { Button } from "@/components/ui/button";
 import { vietnamAddresses } from "@/data/vietnam-addresses";
 import { apiFetch, ApiError, type ApiResponse } from "@/lib/api";
+import {
+  defaultPublicSiteSettings,
+  fetchPublicSiteSettings,
+  getShippingFeeForSubtotal,
+  type PublicSiteSettings
+} from "@/lib/site-settings";
 
 type Address = {
   id: string;
@@ -94,6 +100,7 @@ export default function CheckoutPage() {
   const { items, subtotal, refreshCart } = useCart();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [settings, setSettings] = useState<PublicSiteSettings>(defaultPublicSiteSettings);
   const [addressMode, setAddressMode] = useState<"saved" | "new">("saved");
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const [newAddress, setNewAddress] = useState(emptyAddress);
@@ -124,16 +131,20 @@ export default function CheckoutPage() {
     }
 
     async function loadCheckoutData() {
-      const [addressPayload, paymentPayload] = await Promise.all([
+      const [addressPayload, paymentPayload, settingsPayload] = await Promise.all([
         apiFetch<ApiResponse<Address[]>>("/api/account/addresses"),
         apiFetch<ApiResponse<PaymentMethod[]>>("/api/payments/methods"),
+        fetchPublicSiteSettings(),
       ]);
       const loadedAddresses = addressPayload.data ?? [];
+      const loadedMethods = paymentPayload.data ?? [];
 
       setAddresses(loadedAddresses);
       setSelectedAddressId(loadedAddresses.find((address) => address.isDefault)?.id ?? loadedAddresses[0]?.id ?? "");
       setAddressMode(loadedAddresses.length ? "saved" : "new");
-      setPaymentMethods(paymentPayload.data ?? []);
+      setPaymentMethods(loadedMethods);
+      setSettings(settingsPayload);
+      setPaymentMethod(loadedMethods.find((method) => method.enabled)?.method ?? "COD");
     }
 
     loadCheckoutData().catch((err) => {
@@ -151,7 +162,7 @@ export default function CheckoutPage() {
 
     return Math.min(subtotal, Math.max(0, discount));
   }, [appliedPromotion, subtotal]);
-  const shippingFee = subtotal >= 300000 ? 0 : 25000;
+  const shippingFee = getShippingFeeForSubtotal(settings, subtotal);
   const total = Math.max(0, subtotal - promotionDiscount + shippingFee);
   const selectedPaymentMethod = paymentMethods.find((method) => method.method === paymentMethod);
 

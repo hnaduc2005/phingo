@@ -4,12 +4,19 @@ import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useCart } from "@/components/cart/CartProvider";
 import { Button } from "@/components/ui/button";
 import { imageAssets } from "@/config/images";
+import { isRemoteImageSrc, safeImageSrc } from "@/lib/image-src";
+import {
+  defaultPublicSiteSettings,
+  fetchPublicSiteSettings,
+  getShippingFeeForSubtotal,
+  type PublicSiteSettings
+} from "@/lib/site-settings";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value);
@@ -20,6 +27,25 @@ export default function CartPage() {
   const { isAuthenticated } = useAuth();
   const { items, subtotal, isLoading, updateItem, removeItem, clearCart } = useCart();
   const [error, setError] = useState("");
+  const [settings, setSettings] = useState<PublicSiteSettings>(defaultPublicSiteSettings);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchPublicSiteSettings()
+      .then((payload) => {
+        if (!cancelled) {
+          setSettings(payload);
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const shippingFee = getShippingFeeForSubtotal(settings, subtotal);
 
   function goCheckout() {
     if (!isAuthenticated) {
@@ -85,11 +111,12 @@ export default function CartPage() {
               <div key={item.id} className="grid gap-4 rounded-lg border border-brand-coffee/10 p-4 md:grid-cols-[96px_1fr_auto]">
                 <div className="relative h-24 w-24 rounded-md bg-brand-cream">
                   <Image
-                    src={item.imageUrl || imageAssets.productGroup}
+                    src={safeImageSrc(item.imageUrl, imageAssets.productGroup)}
                     alt={item.name}
                     fill
                     className="object-contain p-2"
                     sizes="96px"
+                    unoptimized={isRemoteImageSrc(safeImageSrc(item.imageUrl, imageAssets.productGroup))}
                   />
                 </div>
                 <div>
@@ -147,7 +174,7 @@ export default function CartPage() {
             </div>
             <div className="flex justify-between">
               <span>Phí vận chuyển</span>
-              <span>{subtotal >= 300000 ? "Miễn phí" : formatCurrency(25000)}</span>
+              <span>{shippingFee ? formatCurrency(shippingFee) : "Miễn phí"}</span>
             </div>
           </div>
           <Button className="mt-6 w-full" variant="premium" onClick={goCheckout}>

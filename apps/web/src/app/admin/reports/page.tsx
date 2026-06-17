@@ -7,6 +7,7 @@ import { apiFetch, type ApiResponse } from "@/lib/api";
 
 type Overview = {
   orders: number;
+  completedOrders: number;
   customers: number;
   revenue: number | string;
   pendingOrders: number;
@@ -22,15 +23,19 @@ type Sales = {
 type ProductReport = {
   id: string;
   name: string;
+  slug: string;
   stock: number;
   displayStock?: number;
   variantStock?: number;
   stockMismatch?: boolean;
   status: string;
-  _count: {
-    orderItems: number;
-  };
+  totalQuantitySold: number;
+  totalRevenue: number | string;
 };
+
+function formatCurrency(value: number | string) {
+  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(Number(value ?? 0));
+}
 
 export default function AdminReportsPage() {
   const [overview, setOverview] = useState<Overview | undefined>();
@@ -55,10 +60,11 @@ export default function AdminReportsPage() {
   return (
     <div className="space-y-6">
       <AdminPageHeader title="Báo cáo" description="Xem báo cáo doanh thu, đơn hàng, sản phẩm và khách hàng." />
-      <div className="grid gap-4 md:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
         {[
-          ["Doanh thu", Number(overview?.revenue ?? 0).toLocaleString("vi-VN") + "đ"],
+          ["Doanh thu hoàn tất", Number(overview?.revenue ?? 0).toLocaleString("vi-VN") + "đ"],
           ["Đơn hàng", overview?.orders ?? 0],
+          ["Đơn hoàn tất", overview?.completedOrders ?? 0],
           ["Đơn chờ", overview?.pendingOrders ?? 0],
           ["Thanh toán chờ", overview?.pendingPayments ?? 0],
           ["Khách hàng", overview?.customers ?? 0],
@@ -104,7 +110,7 @@ export default function AdminReportsPage() {
                 <th className="px-4 py-3">Sản phẩm</th>
                 <th className="px-4 py-3">Tồn kho</th>
                 <th className="px-4 py-3">Trạng thái</th>
-                <th className="px-4 py-3">Số dòng đơn hàng</th>
+                <th className="px-4 py-3">Đã bán / Doanh thu</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -119,7 +125,10 @@ export default function AdminReportsPage() {
                     {product.stockMismatch ? <p className="text-xs font-semibold text-red-600">Lệch stock</p> : null}
                   </td>
                   <td className="px-4 py-3">{product.status}</td>
-                  <td className="px-4 py-3">{product._count.orderItems}</td>
+                  <td className="px-4 py-3">
+                    <p className="font-semibold">{product.totalQuantitySold} sản phẩm</p>
+                    <p className="text-xs text-gray-500">{formatCurrency(product.totalRevenue)}</p>
+                  </td>
                 </tr>
               ))}
             </tbody>

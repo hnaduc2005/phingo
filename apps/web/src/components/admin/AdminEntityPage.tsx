@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Plus, Search, Trash2 } from "lucide-react";
 
 import { AdminPageHeader } from "@/components/common/AdminPageHeader";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { apiFetch, type ApiResponse } from "@/lib/api";
 
@@ -90,20 +90,32 @@ function toPayload(fields: AdminField[], form: Record<string, string | boolean>)
   }, {});
 }
 
-function statusBadge(value: string) {
-  if (["ACTIVE", "PAID", "COMPLETED", "PUBLISHED"].includes(value)) {
-    return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">{value}</Badge>;
+function isStatusValue(value: string) {
+  return /^(ACTIVE|INACTIVE|BANNED|DRAFT|PAID|PENDING|UNPAID|FAILED|COMPLETED|CANCELLED|PUBLISHED|NEW|READ|REPLIED|ARCHIVED)$/.test(value);
+}
+
+function getEntityStatusType(endpoint: string) {
+  if (endpoint.includes("content")) {
+    return "content" as const;
   }
 
-  if (["PENDING", "DRAFT", "UNPAID"].includes(value)) {
-    return <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">{value}</Badge>;
+  if (endpoint.includes("contact-messages")) {
+    return "contact" as const;
   }
 
-  if (["INACTIVE", "BANNED", "FAILED", "CANCELLED"].includes(value)) {
-    return <Badge className="bg-red-100 text-red-700 hover:bg-red-100">{value}</Badge>;
+  if (endpoint.includes("customers")) {
+    return "user" as const;
   }
 
-  return <Badge variant="outline">{value}</Badge>;
+  if (endpoint.includes("products")) {
+    return "product" as const;
+  }
+
+  if (endpoint.includes("payments")) {
+    return "payment" as const;
+  }
+
+  return "generic" as const;
 }
 
 export function AdminEntityPage({
@@ -245,8 +257,8 @@ export function AdminEntityPage({
                       const raw = column.format ? column.format(item) : displayValue(readPath(item, column.key));
                       return (
                         <td key={column.key} className="px-4 py-3 text-gray-700">
-                          {String(raw).match(/^(ACTIVE|INACTIVE|BANNED|DRAFT|PAID|PENDING|UNPAID|FAILED|COMPLETED|CANCELLED|PUBLISHED)$/)
-                            ? statusBadge(String(raw))
+                          {isStatusValue(String(raw))
+                            ? <StatusBadge type={getEntityStatusType(endpoint)} value={String(raw)} />
                             : raw}
                         </td>
                       );

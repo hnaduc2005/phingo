@@ -1,10 +1,5 @@
-import { PageIntro } from "@/components/common/PageIntro"
+import { PublicContentPage } from "@/components/content/PublicContentPage";
 
 export default function ComboPage() {
-  return (
-    <PageIntro
-      title="Combo PHIN GO"
-      description="Các gói combo cà phê pha nhanh dành cho gia đình, văn phòng và quà tặng."
-    />
-  )
+  return <PublicContentPage slug="combo" fallbackTitle="Combo PHIN GO" />;
 }

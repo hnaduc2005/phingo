@@ -1,7 +1,54 @@
 import type { CreateOrderInput, OrderStatus, PaymentMethod } from "@phingo/shared";
 import type { Prisma, PrismaClient } from "@phingo/database";
 
+import { adjustProductStockByDelta } from "../products/product-stock";
+import { getSettingsMap, getShippingSettings } from "../site-settings/site-setting.service";
+
 const BANK_SETTING_KEYS = ["bankName", "bankAccountNumber", "bankAccountHolder", "bankQrImageUrl", "bankTransferNoteTemplate"] as const;
+const PAYMENT_METHOD_CONFIGS: {
+  method: PaymentMethod;
+  name: string;
+  settingKey: string;
+  defaultEnabled: boolean;
+}[] = [
+  {
+    method: "COD",
+    name: "Thanh toán khi nhận hàng",
+    settingKey: "paymentMethod_COD",
+    defaultEnabled: true
+  },
+  {
+    method: "BANK_TRANSFER",
+    name: "Chuyển khoản ngân hàng",
+    settingKey: "paymentMethod_BANK_TRANSFER",
+    defaultEnabled: true
+  },
+  {
+    method: "MOMO",
+    name: "Momo",
+    settingKey: "paymentMethod_MOMO",
+    defaultEnabled: false
+  },
+  {
+    method: "VNPAY",
+    name: "VNPAY",
+    settingKey: "paymentMethod_VNPAY",
+    defaultEnabled: false
+  },
+  {
+    method: "ZALOPAY",
+    name: "ZaloPay",
+    settingKey: "paymentMethod_ZALOPAY",
+    defaultEnabled: false
+  },
+  {
+    method: "CREDIT_CARD",
+    name: "Thẻ tín dụng",
+    settingKey: "paymentMethod_CREDIT_CARD",
+    defaultEnabled: false
+  }
+];
+const PAYMENT_SETTING_KEYS = PAYMENT_METHOD_CONFIGS.map((method) => method.settingKey);
 
 const DEFAULT_BANK_TRANSFER_INFO = {
   bankName: "",
@@ -33,6 +80,24 @@ type StockAdjustment = {
   productName: string;
   quantity: number;
 };
+
+function parseEnabledSetting(value: string | undefined, fallback: boolean) {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  const normalized = value.trim().toLowerCase();
+
+  if (["true", "1", "yes", "on"].includes(normalized)) {
+    return true;
+  }
+
+  if (["false", "0", "no", "off"].includes(normalized)) {
+    return false;
+  }
+
+  return fallback;
+}
 
 export type InsufficientStockItem = {
   productId: string;
@@ -287,6 +352,10 @@ async function decrementStock(
           }
         });
 
+    if (updated.count === 1 && item.variantId && item.productId) {
+      await adjustProductStockByDelta(tx, item.productId, -item.quantity);
+    }
+
     logger?.info(
       {
         orderCode: meta?.orderCode,
@@ -339,6 +408,10 @@ async function restoreStock(
             }
           }
         });
+
+    if (updated.count === 1 && item.variantId && item.productId) {
+      await adjustProductStockByDelta(tx, item.productId, item.quantity);
+    }
 
     logger?.info(
       {
@@ -416,11 +489,20 @@ export async function createOrder(
           ? Math.min(subtotal, subtotal * (Number(promotion.discountValue) / 100))
           : Math.min(subtotal, Number(promotion.discountValue))
         : 0;
-    const shippingFee = subtotal >= 300000 ? 0 : 25000;
+    const paymentMethods = await getPaymentMethodMeta(tx);
+    const selectedPaymentMethod = paymentMethods.find((method) => method.method === input.paymentMethod);
+
+    if (!selectedPaymentMethod?.enabled) {
+      throw new Error("Phương thức thanh toán chưa được bật.");
+    }
+
+    const shippingSettings = await getShippingSettings(tx);
+    const shippingFee =
+      subtotal >= shippingSettings.freeShippingThreshold ? 0 : shippingSettings.shippingFee;
     const totalAmount = Math.max(0, subtotal - discountAmount + shippingFee);
     const paymentStatus = getInitialPaymentStatus(input.paymentMethod);
     const bankTransferInfo =
-      input.paymentMethod === "BANK_TRANSFER" ? await getBankTransferInfo(tx) : undefined;
+      input.paymentMethod === "BANK_TRANSFER" ? selectedPaymentMethod.bankTransfer : undefined;
     const orderCode = createOrderCode();
 
     if (canApplyPromotion && promotion) {
@@ -617,40 +699,16 @@ export async function updateOrderStatus(
   });
 }
 
-export async function getPaymentMethodMeta(prisma: PrismaClient) {
-  const bankTransfer = await getBankTransferInfo(prisma);
+export async function getPaymentMethodMeta(prisma: PrismaExecutor) {
+  const [bankTransfer, paymentSettings] = await Promise.all([
+    getBankTransferInfo(prisma),
+    getSettingsMap(prisma, PAYMENT_SETTING_KEYS)
+  ]);
 
-  return [
-    {
-      method: "COD",
-      name: "Thanh toán khi nhận hàng",
-      enabled: true
-    },
-    {
-      method: "BANK_TRANSFER",
-      name: "Chuyển khoản ngân hàng",
-      enabled: true,
-      bankTransfer
-    },
-    {
-      method: "MOMO",
-      name: "Momo",
-      enabled: false
-    },
-    {
-      method: "VNPAY",
-      name: "VNPAY",
-      enabled: false
-    },
-    {
-      method: "ZALOPAY",
-      name: "ZaloPay",
-      enabled: false
-    },
-    {
-      method: "CREDIT_CARD",
-      name: "Thẻ tín dụng",
-      enabled: false
-    }
-  ];
+  return PAYMENT_METHOD_CONFIGS.map((config) => ({
+    method: config.method,
+    name: config.name,
+    enabled: parseEnabledSetting(paymentSettings[config.settingKey], config.defaultEnabled),
+    ...(config.method === "BANK_TRANSFER" ? { bankTransfer } : {})
+  }));
 }
