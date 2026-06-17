@@ -129,11 +129,16 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 px-6 py-3 text-white/80 transition-colors hover:bg-white/5 hover:text-white",
-                  isActive && "bg-white/10 text-white"
+                  "group relative flex items-center gap-3 px-4 py-3 mx-3 my-1 rounded-xl font-medium transition-all overflow-hidden",
+                  isActive 
+                    ? "bg-brand-mustard/15 text-brand-mustard shadow-sm"
+                    : "text-white/70 hover:bg-white/5 hover:text-white"
                 )}
               >
-                <Icon className="h-5 w-5" />
+                {isActive && (
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-mustard" />
+                )}
+                <Icon className={cn("h-5 w-5 transition-all", isActive ? "text-brand-mustard scale-110" : "text-white/50 group-hover:scale-110 group-hover:text-white/80")} />
                 {item.label}
               </Link>
             );

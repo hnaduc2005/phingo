@@ -45,18 +45,25 @@ export default function AccountLayout({ children }: { children: ReactNode }) {
           <nav className="space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const active = pathname === item.href;
+              const isActive = item.href === "/account" 
+                ? pathname === item.href 
+                : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm text-brand-coffee/75 hover:bg-brand-beige hover:text-brand-coffee",
-                    active && "bg-brand-beige text-brand-coffee"
+                    "group relative flex items-center gap-3 rounded-lg px-4 py-2.5 my-1 text-sm font-medium transition-all overflow-hidden",
+                    isActive 
+                      ? "bg-brand-coffee/10 text-brand-coffee shadow-sm"
+                      : "text-brand-coffee/75 hover:bg-brand-coffee/5 hover:text-brand-coffee"
                   )}
                 >
-                  <Icon className="h-4 w-4" />
+                  {isActive && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-coffee" />
+                  )}
+                  <Icon className={cn("h-4 w-4 transition-transform", isActive ? "text-brand-coffee scale-110" : "text-brand-coffee/60 group-hover:scale-110")} />
                   {item.label}
                 </Link>
               );
