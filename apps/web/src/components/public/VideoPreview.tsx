@@ -11,8 +11,11 @@ type VideoPreviewProps = {
   description?: string;
 };
 
+const DEFAULT_GUIDE_THUMBNAIL = "/images/img-1.png";
+
 export function VideoPreview({ thumbnailUrl, videoUrl, title, description }: VideoPreviewProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const openModal = () => setIsOpen(true);
   const closeModal = () => setIsOpen(false);
@@ -24,36 +27,38 @@ export function VideoPreview({ thumbnailUrl, videoUrl, title, description }: Vid
     };
   }
 
+  const finalThumbnailUrl = (thumbnailUrl && !imgError) ? thumbnailUrl : DEFAULT_GUIDE_THUMBNAIL;
+
   return (
-    <div className="relative mx-auto max-w-4xl w-full">
+    <div className="relative mx-auto max-w-5xl w-full">
       {/* Thumbnail Trigger */}
       <button
         type="button"
-        className="group relative block w-full overflow-hidden rounded-2xl bg-brand-cream/50 shadow-lg aspect-video"
+        className="group relative block w-full overflow-hidden rounded-[1.5rem] md:rounded-[2rem] bg-[#E8DCC8] shadow-2xl aspect-video"
         onClick={openModal}
-        aria-label="Play video"
+        aria-label="Xem video hướng dẫn pha PHIN GO"
       >
-        {thumbnailUrl ? (
-          <Image
-            src={thumbnailUrl}
-            alt={title || "Video preview"}
-            fill
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-            sizes="(max-width: 1024px) 100vw, 1024px"
-          />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-brand-coffee/5 to-brand-coffee/20" />
-        )}
-        <div className="absolute inset-0 bg-black/20 transition-colors group-hover:bg-black/10" />
+        <Image
+          src={finalThumbnailUrl}
+          alt={title || "Cách pha PHIN GO"}
+          fill
+          priority={false}
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          sizes="(max-width: 1024px) 100vw, 1024px"
+          onError={() => setImgError(true)}
+        />
+        
+        <div className="absolute inset-0 bg-gradient-to-br from-black/10 via-black/5 to-[#5A351D]/25" />
+        
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white/90 text-brand-coffee shadow-xl transition-transform group-hover:scale-110">
-            <Play className="h-8 w-8 ml-1" fill="currentColor" />
+          <div className="flex h-16 w-16 md:h-20 md:w-20 items-center justify-center rounded-full bg-white/95 text-[#5A351D] shadow-xl transition-transform hover:scale-105 group-hover:scale-110">
+            <Play className="h-6 w-6 md:h-8 md:w-8 ml-1" fill="currentColor" />
           </div>
         </div>
         {(title || description) && (
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 text-left text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-            {title && <h3 className="text-xl font-bold">{title}</h3>}
-            {description && <p className="mt-2 text-sm text-white/80">{description}</p>}
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 md:p-6 text-left text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+            {title && <h3 className="text-lg md:text-xl font-bold">{title}</h3>}
+            {description && <p className="mt-1 md:mt-2 text-xs md:text-sm text-white/80 line-clamp-2 md:line-clamp-none">{description}</p>}
           </div>
         )}
       </button>

@@ -91,8 +91,10 @@ export function GuideView() {
       <section className="py-16 lg:py-24 px-4 bg-brand-cream">
         <div className="container mx-auto">
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-brand-coffee">Video Hướng Dẫn</h2>
-            <p className="text-brand-coffee/70 mt-2">Xem cách pha một ly PHIN GO chuẩn vị</p>
+            <h2 className="text-3xl font-bold text-brand-coffee">Pha PHIN GO trong 30 giây</h2>
+            <p className="text-brand-coffee/70 mt-2 max-w-2xl mx-auto">
+              Xé gói, gài phin vào ly, ủ 20–30 giây rồi rót đầy nước nóng để thưởng thức cà phê phin chuẩn vị.
+            </p>
           </div>
           <VideoPreview 
             thumbnailUrl={siteConfig.guideVideoThumbnailUrl}
