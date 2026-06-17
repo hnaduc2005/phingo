@@ -11,5 +11,5 @@ export const siteConfig = {
   },
   // TODO: Sau này chuyển sang SiteSetting/admin settings
   guideVideoThumbnailUrl: "/images/img-2.png",
-  guideVideoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+  guideVideoUrl: "/video/guide_video.mp4",
 };

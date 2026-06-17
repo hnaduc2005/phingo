@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { motion } from "framer-motion"
+import { useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -20,16 +21,19 @@ export function HeroSection({ settings }: HeroSectionProps) {
   const heroSubtitle =
     settings?.heroSubtitle?.trim() ||
     "Chọn hương vị yêu thích, đăng nhập để checkout, áp mã giảm giá và theo dõi đơn hàng trong tài khoản của bạn."
-  const heroImage = safeImageSrc(settings?.heroImageUrl, imageAssets.hero3d)
+  const heroFallbackImage = imageAssets.hero3d
+  const heroImage = safeImageSrc(settings?.heroImageUrl, heroFallbackImage)
+  const [failedHeroImage, setFailedHeroImage] = useState<string | null>(null)
+  const heroImageSrc = failedHeroImage === heroImage ? heroFallbackImage : heroImage
 
   return (
-    <section className="relative overflow-hidden bg-brand-cream py-20 lg:py-28">
-      <div className="container relative z-10 mx-auto grid items-center gap-12 px-4 lg:grid-cols-2">
+    <section className="relative overflow-hidden bg-brand-cream">
+      <div className="container relative z-10 mx-auto grid min-h-[calc(100vh-5rem)] grid-cols-1 items-center gap-10 px-4 py-16 sm:px-6 md:gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(360px,560px)] lg:px-8 lg:py-24">
         <motion.div
           initial={{ opacity: 0, x: -40 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.7, ease: "easeOut" }}
-          className="space-y-8"
+          className="min-w-0 max-w-2xl space-y-7 lg:space-y-8"
         >
           <div className="flex flex-wrap gap-3">
             <Badge variant="mustard">Pha nhanh 2-3 phút</Badge>
@@ -37,14 +41,14 @@ export function HeroSection({ settings }: HeroSectionProps) {
             <Badge variant="outline" className="border-brand-coffee/20">Mua online tiện lợi</Badge>
           </div>
 
-          <h1 className="text-5xl font-extrabold leading-tight text-brand-coffee lg:text-7xl">
+          <h1 className="text-[clamp(3rem,12vw,4.5rem)] font-extrabold leading-[0.98] tracking-tight text-brand-coffee sm:text-[clamp(3.75rem,9vw,5.75rem)] lg:text-[clamp(4.5rem,6.5vw,6.5rem)]">
             {heroTitle}
             <span className="block bg-gradient-to-r from-brand-mustard to-brand-gold bg-clip-text text-transparent">
               {heroSlogan}
             </span>
           </h1>
 
-          <p className="max-w-xl text-lg leading-relaxed text-brand-coffee/80">
+          <p className="max-w-xl text-base leading-relaxed text-brand-coffee/80 sm:text-lg">
             {heroSubtitle}
           </p>
 
@@ -65,16 +69,21 @@ export function HeroSection({ settings }: HeroSectionProps) {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
-          className="relative flex h-[420px] items-center justify-center lg:h-[560px]"
+          className="relative mx-auto aspect-[4/3] w-full max-w-[560px]"
         >
           <FloatingImage
-            src={heroImage}
+            src={heroImageSrc}
             alt="PHIN GO Coffee"
             fill
             className="object-contain"
-            sizes="(max-width: 768px) 100vw, 50vw"
+            sizes="(min-width: 1024px) 560px, 100vw"
             priority
-            unoptimized={isRemoteImageSrc(heroImage)}
+            unoptimized={isRemoteImageSrc(heroImageSrc)}
+            onError={() => {
+              if (heroImageSrc !== heroFallbackImage) {
+                setFailedHeroImage(heroImage)
+              }
+            }}
           />
         </motion.div>
       </div>

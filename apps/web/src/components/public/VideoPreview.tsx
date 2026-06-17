@@ -76,13 +76,23 @@ export function VideoPreview({ thumbnailUrl, videoUrl, title, description }: Vid
               <X className="h-6 w-6" />
             </button>
             {videoUrl ? (
-              <iframe
-                src={videoUrl}
-                className="h-full w-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                title={title || "Video"}
-              />
+              videoUrl.endsWith(".mp4") || videoUrl.endsWith(".webm") ? (
+                <video
+                  src={videoUrl}
+                  className="h-full w-full border-0 outline-none"
+                  controls
+                  autoPlay
+                  title={title || "Video"}
+                />
+              ) : (
+                <iframe
+                  src={videoUrl}
+                  className="h-full w-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  title={title || "Video"}
+                />
+              )
             ) : (
               <div className="flex h-full w-full flex-col items-center justify-center bg-brand-coffee text-white p-8 text-center">
                 <Play className="h-16 w-16 mb-4 opacity-50" />
