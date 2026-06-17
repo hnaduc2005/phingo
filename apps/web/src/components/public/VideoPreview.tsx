@@ -79,9 +79,10 @@ export function VideoPreview({ thumbnailUrl, videoUrl, title, description }: Vid
               videoUrl.endsWith(".mp4") || videoUrl.endsWith(".webm") ? (
                 <video
                   src={videoUrl}
-                  className="h-full w-full border-0 outline-none"
+                  className="h-full w-full border-0 outline-none bg-black"
                   controls
                   autoPlay
+                  playsInline
                   title={title || "Video"}
                 />
               ) : (
