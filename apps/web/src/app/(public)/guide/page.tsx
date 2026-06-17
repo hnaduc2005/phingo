@@ -1,4 +1,4 @@
-import { PublicContentPage } from "@/components/content/PublicContentPage";
+import { GuideView } from "./GuideView";
 
 export const metadata = {
   title: "Hướng dẫn pha - PHIN GO",
@@ -6,5 +6,5 @@ export const metadata = {
 };
 
 export default function GuidePage() {
-  return <PublicContentPage slug="guide" fallbackTitle="Hướng dẫn pha" />;
+  return <GuideView />;
 }

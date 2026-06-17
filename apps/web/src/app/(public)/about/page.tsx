@@ -1,4 +1,4 @@
-import { PublicContentPage } from "@/components/content/PublicContentPage";
+import { AboutView } from "./AboutView";
 
 export const metadata = {
   title: "Về PHIN GO",
@@ -6,5 +6,5 @@ export const metadata = {
 };
 
 export default function AboutPage() {
-  return <PublicContentPage slug="about" fallbackTitle="Về PHIN GO" />;
+  return <AboutView />;
 }
