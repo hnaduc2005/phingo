@@ -194,7 +194,7 @@ function groupStockAdjustments(items: CheckoutItem[] | { productId: string | nul
   return [...grouped.values()];
 }
 
-async function getAvailableStock(tx: Prisma.TransactionClient, item: StockAdjustment) {
+async function getAvailableStock(tx: PrismaExecutor, item: StockAdjustment) {
   if (item.variantId) {
     const variant = await tx.productVariant.findUnique({
       where: { id: item.variantId },
@@ -212,7 +212,7 @@ async function getAvailableStock(tx: Prisma.TransactionClient, item: StockAdjust
   return product?.stock ?? 0;
 }
 
-async function assertStockAvailable(tx: Prisma.TransactionClient, items: CheckoutItem[]) {
+async function assertStockAvailable(tx: PrismaExecutor, items: CheckoutItem[]) {
   const insufficient: InsufficientStockItem[] = [];
 
   for (const item of groupStockAdjustments(items)) {
@@ -234,7 +234,7 @@ async function assertStockAvailable(tx: Prisma.TransactionClient, items: Checkou
   }
 }
 
-async function resolveCheckoutItems(tx: Prisma.TransactionClient, customerId: string, input: CreateOrderInput) {
+async function resolveCheckoutItems(tx: PrismaExecutor, customerId: string, input: CreateOrderInput) {
   const inputItems = input.items ?? [];
 
   if (inputItems.length > 0) {
@@ -446,138 +446,150 @@ export async function createOrder(
   input: CreateOrderInput,
   logger?: StockLogger
 ) {
-  return prisma.$transaction(async (tx) => {
-    const customer = await tx.user.findUnique({
-      where: { id: customerId },
-      include: {
-        addresses: true
+  const startedAt = Date.now();
+
+  const customer = await prisma.user.findUnique({
+    where: { id: customerId },
+    include: {
+      addresses: true
+    }
+  });
+
+  if (!customer || customer.status !== "ACTIVE") {
+    throw new Error("Customer account is not active");
+  }
+
+  const selectedAddress = input.addressId
+    ? customer.addresses.find((address) => address.id === input.addressId)
+    : undefined;
+
+  const shippingAddress = selectedAddress
+    ? formatAddress(selectedAddress)
+    : input.shippingAddress;
+
+  if (!shippingAddress) {
+    throw new Error("Shipping address is required");
+  }
+
+  const orderItems = await resolveCheckoutItems(prisma, customerId, input);
+  const subtotal = orderItems.reduce((sum, item) => sum + item.totalPrice, 0);
+  const promotion = input.promotionCode
+    ? await prisma.promotion.findUnique({
+        where: { code: input.promotionCode.toUpperCase() }
+      })
+    : null;
+  const now = new Date();
+  const canApplyPromotion =
+    promotion?.isActive &&
+    (!promotion.startDate || promotion.startDate <= now) &&
+    (!promotion.endDate || promotion.endDate >= now) &&
+    (!promotion.usageLimit || promotion.usedCount < promotion.usageLimit);
+  const discountAmount =
+    canApplyPromotion && promotion
+      ? promotion.discountType === "PERCENT"
+        ? Math.min(subtotal, subtotal * (Number(promotion.discountValue) / 100))
+        : Math.min(subtotal, Number(promotion.discountValue))
+      : 0;
+  const paymentMethods = await getPaymentMethodMeta(prisma);
+  const selectedPaymentMethod = paymentMethods.find((method) => method.method === input.paymentMethod);
+
+  if (!selectedPaymentMethod?.enabled) {
+    throw new Error("Phương thức thanh toán chưa được bật.");
+  }
+
+  const shippingSettings = await getShippingSettings(prisma);
+  const shippingFee =
+    subtotal >= shippingSettings.freeShippingThreshold ? 0 : shippingSettings.shippingFee;
+  const totalAmount = Math.max(0, subtotal - discountAmount + shippingFee);
+  const paymentStatus = getInitialPaymentStatus(input.paymentMethod);
+  const bankTransferInfo =
+    input.paymentMethod === "BANK_TRANSFER" ? selectedPaymentMethod.bankTransfer : undefined;
+  const orderCode = createOrderCode();
+
+  const order = await prisma.$transaction(
+    async (tx) => {
+      if (canApplyPromotion && promotion) {
+        await tx.promotion.update({
+          where: { id: promotion.id },
+          data: {
+            usedCount: {
+              increment: 1
+            }
+          }
+        });
       }
-    });
 
-    if (!customer || customer.status !== "ACTIVE") {
-      throw new Error("Customer account is not active");
-    }
+      await decrementStock(tx, orderItems, logger, { orderCode, userId: customer.id });
 
-    const selectedAddress = input.addressId
-      ? customer.addresses.find((address) => address.id === input.addressId)
-      : undefined;
-
-    const shippingAddress = selectedAddress
-      ? formatAddress(selectedAddress)
-      : input.shippingAddress;
-
-    if (!shippingAddress) {
-      throw new Error("Shipping address is required");
-    }
-
-    const orderItems = await resolveCheckoutItems(tx, customerId, input);
-    const subtotal = orderItems.reduce((sum, item) => sum + item.totalPrice, 0);
-    const promotion = input.promotionCode
-      ? await tx.promotion.findUnique({
-          where: { code: input.promotionCode.toUpperCase() }
-        })
-      : null;
-    const now = new Date();
-    const canApplyPromotion =
-      promotion?.isActive &&
-      (!promotion.startDate || promotion.startDate <= now) &&
-      (!promotion.endDate || promotion.endDate >= now) &&
-      (!promotion.usageLimit || promotion.usedCount < promotion.usageLimit);
-    const discountAmount =
-      canApplyPromotion && promotion
-        ? promotion.discountType === "PERCENT"
-          ? Math.min(subtotal, subtotal * (Number(promotion.discountValue) / 100))
-          : Math.min(subtotal, Number(promotion.discountValue))
-        : 0;
-    const paymentMethods = await getPaymentMethodMeta(tx);
-    const selectedPaymentMethod = paymentMethods.find((method) => method.method === input.paymentMethod);
-
-    if (!selectedPaymentMethod?.enabled) {
-      throw new Error("Phương thức thanh toán chưa được bật.");
-    }
-
-    const shippingSettings = await getShippingSettings(tx);
-    const shippingFee =
-      subtotal >= shippingSettings.freeShippingThreshold ? 0 : shippingSettings.shippingFee;
-    const totalAmount = Math.max(0, subtotal - discountAmount + shippingFee);
-    const paymentStatus = getInitialPaymentStatus(input.paymentMethod);
-    const bankTransferInfo =
-      input.paymentMethod === "BANK_TRANSFER" ? selectedPaymentMethod.bankTransfer : undefined;
-    const orderCode = createOrderCode();
-
-    if (canApplyPromotion && promotion) {
-      await tx.promotion.update({
-        where: { id: promotion.id },
+      const createdOrder = await tx.order.create({
         data: {
-          usedCount: {
-            increment: 1
+          orderCode,
+          customerId: customer.id,
+          customerName: input.customerName ?? customer.name,
+          customerEmail: customer.email,
+          customerPhone: input.customerPhone ?? customer.phone ?? selectedAddress?.receiverPhone ?? "",
+          shippingAddress,
+          note: input.note,
+          subtotal,
+          discountAmount,
+          shippingFee,
+          totalAmount,
+          paymentMethod: input.paymentMethod,
+          paymentStatus,
+          promotionCode: canApplyPromotion ? promotion?.code : undefined,
+          items: {
+            create: orderItems
+          },
+          payment: {
+            create: {
+              method: input.paymentMethod,
+              status: paymentStatus,
+              amount: totalAmount,
+              transactionCode: input.transactionCode,
+              transferImageUrl: input.transferImageUrl,
+              bankName: bankTransferInfo?.bankName,
+              bankAccountNumber: bankTransferInfo?.bankAccountNumber,
+              bankAccountHolder: bankTransferInfo?.bankAccountHolder
+            }
+          }
+        },
+        include: {
+          items: true,
+          payment: true
+        }
+      });
+
+      await tx.cartItem.deleteMany({
+        where: {
+          cart: {
+            userId: customerId
           }
         }
       });
+
+      return createdOrder;
+    },
+    {
+      maxWait: 10000,
+      timeout: 20000
     }
+  );
 
-    const order = await tx.order.create({
-      data: {
-        orderCode,
-        customerId: customer.id,
-        customerName: input.customerName ?? customer.name,
-        customerEmail: customer.email,
-        customerPhone: input.customerPhone ?? customer.phone ?? selectedAddress?.receiverPhone ?? "",
-        shippingAddress,
-        note: input.note,
-        subtotal,
-        discountAmount,
-        shippingFee,
-        totalAmount,
-        paymentMethod: input.paymentMethod,
-        paymentStatus,
-        promotionCode: canApplyPromotion ? promotion?.code : undefined,
-        items: {
-          create: orderItems
-        },
-        payment: {
-          create: {
-            method: input.paymentMethod,
-            status: paymentStatus,
-            amount: totalAmount,
-            transactionCode: input.transactionCode,
-            transferImageUrl: input.transferImageUrl,
-            bankName: bankTransferInfo?.bankName,
-            bankAccountNumber: bankTransferInfo?.bankAccountNumber,
-            bankAccountHolder: bankTransferInfo?.bankAccountHolder
-          }
-        }
-      },
-      include: {
-        items: true,
-        payment: true
-      }
-    });
+  logger?.info(
+    {
+      orderCode,
+      userId: customer.id,
+      items: orderItems.map((item) => ({
+        productId: item.productId,
+        variantId: item.variantId,
+        quantity: item.quantity
+      })),
+      durationMs: Date.now() - startedAt
+    },
+    "create order completed"
+  );
 
-    await decrementStock(tx, orderItems, logger, { orderCode, userId: customer.id });
-    await tx.cartItem.deleteMany({
-      where: {
-        cart: {
-          userId: customerId
-        }
-      }
-    });
-
-    logger?.info(
-      {
-        orderCode,
-        userId: customer.id,
-        items: orderItems.map((item) => ({
-          productId: item.productId,
-          variantId: item.variantId,
-          quantity: item.quantity
-        }))
-      },
-      "Order created and stock decremented"
-    );
-
-    return order;
-  });
+  return order;
 }
 
 export async function updateOrderStatus(
@@ -696,6 +708,9 @@ export async function updateOrderStatus(
         }
       }
     });
+  }, {
+    maxWait: 10000,
+    timeout: 20000
   });
 }
 
