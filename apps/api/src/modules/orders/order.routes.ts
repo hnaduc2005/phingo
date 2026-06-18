@@ -44,8 +44,11 @@ export async function orderRoutes(app: FastifyInstance) {
 
     if (order.paymentMethod === "BANK_TRANSFER" && order.payment) {
       const bankInfo = await getBankTransferInfo(app.prisma);
-      // Inject the settings directly so the frontend has access to qrImageUrl and transferContentTemplate
+      // Inject the current settings so the frontend has complete bank transfer details.
       Object.assign(order.payment, {
+        bankName: bankInfo.bankName,
+        bankAccountNumber: bankInfo.bankAccountNumber,
+        bankAccountHolder: bankInfo.bankAccountHolder,
         qrImageUrl: bankInfo.qrImageUrl,
         transferContentTemplate: bankInfo.transferContentTemplate,
       });

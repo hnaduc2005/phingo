@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { requireRole } from "../../middlewares/require-role";
 import { fail, ok } from "../../utils/response";
-import { updateOrderStatus } from "../orders/order.service";
+import { getBankTransferInfo, updateOrderStatus } from "../orders/order.service";
 
 const profileSchema = z.object({
   name: optionalTrimmedString.refine((value) => value === undefined || value.length >= 2, {
@@ -182,6 +182,18 @@ export async function accountRoutes(app: FastifyInstance) {
 
     if (!order) {
       return fail(reply, "Order not found", undefined, 404);
+    }
+
+    if (order.paymentMethod === "BANK_TRANSFER" && order.payment) {
+      const bankInfo = await getBankTransferInfo(app.prisma);
+
+      Object.assign(order.payment, {
+        bankName: bankInfo.bankName,
+        bankAccountNumber: bankInfo.bankAccountNumber,
+        bankAccountHolder: bankInfo.bankAccountHolder,
+        qrImageUrl: bankInfo.qrImageUrl,
+        transferContentTemplate: bankInfo.transferContentTemplate,
+      });
     }
 
     return ok(reply, "Order fetched", order);
